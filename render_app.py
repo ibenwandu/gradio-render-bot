@@ -146,7 +146,7 @@ if __name__ == "__main__":
 
     dark_theme = gr.themes.Base().set(
         body_background_fill="#1e1e1e",
-        body_text_color="#ffffff"
+        body_text_color="#1b55f5"
     )
 
         
