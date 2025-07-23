@@ -139,8 +139,18 @@ class Me:
 
 if __name__ == "__main__":
     import os
+    import gradio as gr
 
     me = Me()
     port = int(os.environ.get("PORT", 7860))
-    chatbot = gr.ChatInterface(me.chat, type="messages", theme=gr.themes.Base(mode="dark"))
+
+    dark_theme = gr.themes.Monochrome(
+        primary_hue="blue",
+        secondary_hue="gray"
+    ).set(
+        body_background_fill="#1e1e1e",
+        body_text_color="#ffffff"
+    )
+
+    chatbot = gr.ChatInterface(me.chat, type="messages", theme=dark_theme)
     chatbot.launch(server_name="0.0.0.0", server_port=port)
