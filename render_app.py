@@ -145,7 +145,7 @@ if __name__ == "__main__":
     port = int(os.environ.get("PORT", 7860))
 
     dark_theme = gr.themes.Base().set(
-        body_background_fill="#1e1e1e",
+        body_background_fill="#2778c4",
         body_text_color="#000000"
     )
 
