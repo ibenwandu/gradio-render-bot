@@ -173,4 +173,7 @@ if __name__ == "__main__":
 
         
     chatbot = gr.ChatInterface(me.chat, type="messages", theme=dark_theme)
+
+    gr.HTML('<div class="custom-footer">Ibe Nwandu</div>')
+    
     chatbot.launch(server_name="0.0.0.0", server_port=port)
