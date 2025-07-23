@@ -149,7 +149,7 @@ if __name__ == "__main__":
         secondary_hue="gray"
     ).set(
         body_background_fill="#1e1e1e",
-        body_text_color="#ffffff"
+        body_text_color="#000000"
     )
 
     chatbot = gr.ChatInterface(me.chat, type="messages", theme=dark_theme)
