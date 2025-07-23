@@ -149,31 +149,26 @@ if __name__ == "__main__":
         body_text_color="#000000"
     )
     gr.HTML("""
-            <style>
-                footer, 
-                .svelte-1ipelgc, 
-                .footer, 
-                .wrap.svelte-1ipelgc, 
-                div[class*="footer"],
-                #footer, 
-                [class*="footer"], 
-                [class*="Footer"],
-                .prose > div:last-child, 
-                .svelte-1knsjgi {
-                    display: none !important;
-                }
-                .custom-footer {
-                    text-align: center;
-                    color: #ccc;
-                    padding: 1em 0;
-                    font-size: 0.9rem;
-                }
-            </style>
-    """)
+        <script>
+        window.addEventListener('load', function () {
+            const observer = new MutationObserver(() => {
+                document.querySelectorAll('footer, div[class*="footer"], #footer, .svelte-1ipelgc, .svelte-1knsjgi, .wrap').forEach(el => el.remove());
+            });
+            observer.observe(document.body, { childList: true, subtree: true });
+        });
+        </script>
+        <style>
+            .custom-footer {
+                text-align: center;
+                color: #ccc;
+                font-size: 0.9rem;
+                padding: 1em 0;
+            }
+        </style>
+        <div class="custom-footer">Ibe Nwandu</div>
+        """)
 
         
     chatbot = gr.ChatInterface(me.chat, type="messages", theme=dark_theme)
 
-    gr.HTML('<div class="custom-footer">Ibe Nwandu</div>')
-    
     chatbot.launch(server_name="0.0.0.0", server_port=port)
