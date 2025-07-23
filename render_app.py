@@ -144,7 +144,7 @@ if __name__ == "__main__":
     me = Me()
     port = int(os.environ.get("PORT", 7860))
 
-    dark_theme = gr.themes.Ocean
+    dark_theme = gr.themes.Monochrome
     
     
     chatbot = gr.ChatInterface(me.chat, type="messages", theme=dark_theme)
