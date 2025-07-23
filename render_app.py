@@ -148,6 +148,28 @@ if __name__ == "__main__":
         body_background_fill="#2778c4",
         body_text_color="#000000"
     )
+    gr.HTML("""
+            <style>
+                footer, 
+                .svelte-1ipelgc, 
+                .footer, 
+                .wrap.svelte-1ipelgc, 
+                div[class*="footer"],
+                #footer, 
+                [class*="footer"], 
+                [class*="Footer"],
+                .prose > div:last-child, 
+                .svelte-1knsjgi {
+                    display: none !important;
+                }
+                .custom-footer {
+                    text-align: center;
+                    color: #ccc;
+                    padding: 1em 0;
+                    font-size: 0.9rem;
+                }
+            </style>
+    """)
 
         
     chatbot = gr.ChatInterface(me.chat, type="messages", theme=dark_theme)
