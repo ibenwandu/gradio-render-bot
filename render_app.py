@@ -6,7 +6,6 @@ import requests
 from pypdf import PdfReader
 import gradio as gr
 
-
 load_dotenv(override=True)
 
 
@@ -25,9 +24,11 @@ def record_user_details(email, name="Name not provided", notes="not provided"):
     push(f"Recording {name} with email {email} and notes {notes}")
     return {"recorded": "ok"}
 
+
 def record_unknown_question(question):
     push(f"Recording {question}")
     return {"recorded": "ok"}
+
 
 record_user_details_json = {
     "name": "record_user_details",
@@ -42,8 +43,7 @@ record_user_details_json = {
             "name": {
                 "type": "string",
                 "description": "The user's name, if they provided it"
-            }
-            ,
+            },
             "notes": {
                 "type": "string",
                 "description": "Any additional information about the conversation that's worth recording to give context"
@@ -71,7 +71,7 @@ record_unknown_question_json = {
 }
 
 tools = [{"type": "function", "function": record_user_details_json},
-        {"type": "function", "function": record_unknown_question_json}]
+         {"type": "function", "function": record_unknown_question_json}]
 
 
 class Me:
@@ -79,15 +79,32 @@ class Me:
     def __init__(self):
         self.openai = OpenAI()
         self.name = "Ibe Nwandu"
-        reader = PdfReader("me/linkedin.pdf")
+
+        # Download linkedin.pdf from environment variable
+        linkedin_pdf_url = os.getenv("LINKEDIN_PDF_URL")
+        linkedin_pdf_path = "linkedin.pdf"
+        pdf_response = requests.get(linkedin_pdf_url)
+        pdf_response.raise_for_status()  # Raises error if download failed
+        with open(linkedin_pdf_path, "wb") as f:
+            f.write(pdf_response.content)
+
+        reader = PdfReader(linkedin_pdf_path)
         self.linkedin = ""
         for page in reader.pages:
             text = page.extract_text()
             if text:
                 self.linkedin += text
-        with open("me/summary.txt", "r", encoding="utf-8") as f:
-            self.summary = f.read()
 
+        # Download summary.txt from environment variable
+        summary_txt_url = os.getenv("SUMMARY_TXT_URL")
+        summary_txt_path = "summary.txt"
+        summary_response = requests.get(summary_txt_url)
+        summary_response.raise_for_status()
+        with open(summary_txt_path, "wb") as f:
+            f.write(summary_response.content)
+
+        with open(summary_txt_path, "r", encoding="utf-8") as f:
+            self.summary = f.read()
 
     def handle_tool_call(self, tool_calls):
         results = []
@@ -97,9 +114,9 @@ class Me:
             print(f"Tool called: {tool_name}", flush=True)
             tool = globals().get(tool_name)
             result = tool(**arguments) if tool else {}
-            results.append({"role": "tool","content": json.dumps(result),"tool_call_id": tool_call.id})
+            results.append({"role": "tool", "content": json.dumps(result), "tool_call_id": tool_call.id})
         return results
-    
+
     def system_prompt(self):
         system_prompt = f"You are acting as {self.name}. You are answering questions on {self.name}'s website, \
 particularly questions related to {self.name}'s career, background, skills and experience. \
@@ -112,13 +129,13 @@ If the user is engaging in discussion, try to steer them towards getting in touc
         system_prompt += f"\n\n## Summary:\n{self.summary}\n\n## LinkedIn Profile:\n{self.linkedin}\n\n"
         system_prompt += f"With this context, please chat with the user, always staying in character as {self.name}."
         return system_prompt
-    
+
     def chat(self, message, history):
         messages = [{"role": "system", "content": self.system_prompt()}] + history + [{"role": "user", "content": message}]
         done = False
         while not done:
             response = self.openai.chat.completions.create(model="gpt-4o-mini", messages=messages, tools=tools)
-            if response.choices[0].finish_reason=="tool_calls":
+            if response.choices[0].finish_reason == "tool_calls":
                 message = response.choices[0].message
                 tool_calls = message.tool_calls
                 results = self.handle_tool_call(tool_calls)
@@ -127,10 +144,11 @@ If the user is engaging in discussion, try to steer them towards getting in touc
             else:
                 done = True
         return response.choices[0].message.content
-    
+
 
 if __name__ == "__main__":
     me = Me()
-    gr.ChatInterface(me.chat, type="messages").launch(server_name="0.0.0.0", 
-        server_port=int(os.environ.get("PORT", 10000)))
-   
+    gr.ChatInterface(me.chat, type="messages").launch(
+        server_name="0.0.0.0",
+        server_port=int(os.environ.get("PORT", 10000))
+    )
