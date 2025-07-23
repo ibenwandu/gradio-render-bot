@@ -152,19 +152,20 @@ if __name__ == "__main__":
         body_text_color="#000000"
     )
     
-    gr.HTML(
-    """
-    <style>
+    with gr.Blocks(theme=gr.themes.Base(), css="""
         footer, 
         .svelte-1ipelgc, 
         .footer, 
         .wrap.svelte-1ipelgc, 
-        div[class*="footer"] {
-            display: none !important;
+        div[class*="footer"],
+        #footer, 
+        [class*="footer"], 
+        [class*="Footer"],
+        .prose > div:last-child, 
+        .svelte-1knsjgi { 
+            display: none !important; 
         }
-    </style>
-    """
-    )
+    """) as app:
 
-    chatbot = gr.ChatInterface(me.chat, type="messages", theme=dark_theme)
+        chatbot = gr.ChatInterface(me.chat, type="messages", theme=dark_theme)
     chatbot.launch(server_name="0.0.0.0", server_port=port)
