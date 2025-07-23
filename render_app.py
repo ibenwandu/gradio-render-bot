@@ -151,6 +151,20 @@ if __name__ == "__main__":
         body_background_fill="#1e1e1e",
         body_text_color="#000000"
     )
+    
+    gr.HTML(
+    """
+    <style>
+        footer, 
+        .svelte-1ipelgc, 
+        .footer, 
+        .wrap.svelte-1ipelgc, 
+        div[class*="footer"] {
+            display: none !important;
+        }
+    </style>
+    """
+    )
 
     chatbot = gr.ChatInterface(me.chat, type="messages", theme=dark_theme)
     chatbot.launch(server_name="0.0.0.0", server_port=port)
