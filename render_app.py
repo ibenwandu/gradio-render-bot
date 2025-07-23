@@ -4,7 +4,6 @@ import gdown
 from openai import OpenAI
 from pypdf import PdfReader
 import gradio as gr
-from gradio.themes.utils import ThemeClass
 from dotenv import load_dotenv
 
 load_dotenv(override=True)
@@ -143,5 +142,5 @@ if __name__ == "__main__":
 
     me = Me()
     port = int(os.environ.get("PORT", 7860))
-    chatbot = gr.ChatInterface(me.chat, type="messages", theme=gr.themes.Base(theme_mode="dark"))
+    chatbot = gr.ChatInterface(me.chat, type="messages", theme=gr.themes.Ocean)
     chatbot.launch(server_name="0.0.0.0", server_port=port)
