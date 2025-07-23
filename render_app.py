@@ -148,7 +148,7 @@ if __name__ == "__main__":
         primary_hue="blue",
         secondary_hue="gray"
     ).set(
-        body_background_fill="#1e1e1e",
+        body_background_fill="#1f2a30",
         body_text_color="#000000"
     )
     
