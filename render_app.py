@@ -144,8 +144,11 @@ if __name__ == "__main__":
     me = Me()
     port = int(os.environ.get("PORT", 7860))
 
-    dark_theme = gr.themes.Monochrome
-    
-    
+    dark_theme = gr.themes.Base().set(
+        body_background_fill="#1e1e1e",
+        body_text_color="#ffffff"
+    )
+
+        
     chatbot = gr.ChatInterface(me.chat, type="messages", theme=dark_theme)
     chatbot.launch(server_name="0.0.0.0", server_port=port)
