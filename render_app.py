@@ -202,7 +202,7 @@ if __name__ == "__main__":
 
         # Footer credit (your custom footer)
         gr.HTML("""
-        <div style='text-align:center; color:#aaa; padding:1em; font-size:0.9em'>
+        <div style='text-align:center; color:red; padding:1em; font-size:1.5em; font-weight:bold; font-style:italic;'>
             Ibe Nwandu
         </div>
         """)
