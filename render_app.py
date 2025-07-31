@@ -188,7 +188,7 @@ if __name__ == "__main__":
         """)
 
         
-    chatbot = gr.ChatInterface(me.chat, type="messages", theme=dark_theme)
+    chatbot = gr.ChatInterface(me.chat, type="messages", theme=dark_theme, show_api=False, show_tips=False)
 
     gr.HTML("""
         <div style='text-align:center; color:#aaa; padding:1em; font-size:0.9em'>
@@ -199,6 +199,4 @@ if __name__ == "__main__":
     chatbot.launch(
         server_name="0.0.0.0", 
         server_port=port,
-        show_api=False,
-        show_error=True
-    )
+            )
