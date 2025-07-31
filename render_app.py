@@ -126,7 +126,7 @@ class Me:
         system_prompt += f"With this context, please chat with the user, always staying in character as {self.name}."
         return system_prompt
 
-    def chat(self, message, history):
+    def chat_fn(self, message, history):
         # Convert history to Gemini format
         chat = self.model.start_chat(history=[])
         
