@@ -164,41 +164,47 @@ class Me:
 import os
 import gradio as gr
 
+
 if __name__ == "__main__":
     me = Me()
     port = int(os.environ.get("PORT", 7860))
 
+    # Custom theme
     dark_theme = gr.themes.Base().set(
         body_background_fill="#2778c4",
         body_text_color="#000000"
     )
 
-    with gr.Blocks(theme=dark_theme, show_header=False, show_footer=False) as demo:
-        # Inject JS to remove any leftover footer elements (Gradio footer is React-based)
+    with gr.Blocks(theme=dark_theme) as demo:
+        # Inject JS to remove footer
         gr.HTML("""
-            <script>
-            window.addEventListener('load', function () {
-                const interval = setInterval(() => {
-                    const footer = document.querySelector('footer');
-                    if (footer) {
-                        footer.remove();
-                        clearInterval(interval);
-                    }
-                }, 500);
-            });
-            </script>
+        <script>
+        window.addEventListener('load', function () {
+            const interval = setInterval(() => {
+                const footer = document.querySelector('footer');
+                if (footer) {
+                    footer.remove();
+                    clearInterval(interval);
+                }
+            }, 500);
+        });
+        </script>
         """)
 
+        # Chat interface
         chatbot = gr.ChatInterface(
-            me.chat,
+            fn=me.chat,
             type="messages",
             show_label=False,
+            title=None,
+            description=None
         )
 
+        # Footer credit (your custom footer)
         gr.HTML("""
-            <div style='text-align:center; color:#aaa; padding:1em; font-size:0.9em'>
-                Ibe Nwandu
-            </div>
+        <div style='text-align:center; color:#aaa; padding:1em; font-size:0.9em'>
+            Ibe Nwandu
+        </div>
         """)
 
     demo.launch(
@@ -208,4 +214,5 @@ if __name__ == "__main__":
         show_tips=False,
         show_error=True
     )
+
 
