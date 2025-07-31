@@ -161,10 +161,10 @@ class Me:
             return "I apologize, but I'm having trouble processing your request right now. Please try again."
 
 
-if __name__ == "__main__":
-    import os
-    import gradio as gr
+import os
+import gradio as gr
 
+if __name__ == "__main__":
     me = Me()
     port = int(os.environ.get("PORT", 7860))
 
@@ -172,31 +172,40 @@ if __name__ == "__main__":
         body_background_fill="#2778c4",
         body_text_color="#000000"
     )
-    gr.HTML("""
-        <script>
-        window.addEventListener('load', function () {
-            // Attempt to remove Gradio footer repeatedly (due to how it renders)
-            const interval = setInterval(() => {
-                const footer = document.querySelector('footer');
-                if (footer) {
-                    footer.remove();
-                    clearInterval(interval);
-                }
-            }, 500);
-        });
-        </script>
+
+    with gr.Blocks(theme=dark_theme, show_header=False, show_footer=False) as demo:
+        # Inject JS to remove any leftover footer elements (Gradio footer is React-based)
+        gr.HTML("""
+            <script>
+            window.addEventListener('load', function () {
+                const interval = setInterval(() => {
+                    const footer = document.querySelector('footer');
+                    if (footer) {
+                        footer.remove();
+                        clearInterval(interval);
+                    }
+                }, 500);
+            });
+            </script>
         """)
 
-        
-    chatbot = gr.ChatInterface(me.chat, type="messages", theme=dark_theme, show_api=False, show_tips=False)
+        chatbot = gr.ChatInterface(
+            me.chat,
+            type="messages",
+            show_label=False,
+        )
 
-    gr.HTML("""
-        <div style='text-align:center; color:#aaa; padding:1em; font-size:0.9em'>
-            Ibe Nwandu
-        </div>
+        gr.HTML("""
+            <div style='text-align:center; color:#aaa; padding:1em; font-size:0.9em'>
+                Ibe Nwandu
+            </div>
         """)
 
-    chatbot.launch(
-        server_name="0.0.0.0", 
+    demo.launch(
+        server_name="0.0.0.0",
         server_port=port,
-            )
+        show_api=False,
+        show_tips=False,
+        show_error=True
+    )
+
