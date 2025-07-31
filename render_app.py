@@ -172,4 +172,14 @@ if __name__ == "__main__":
         </div>
         """)
 
-    chatbot.launch(server_name="0.0.0.0", server_port=port)
+    chatbot.launch(
+        server_name="0.0.0.0", 
+    server_port=port,
+    show_api=False,
+    show_error=True,
+    show_tips=False,
+    show_label=False,  # Hides labels
+    container=False,   # Removes container styling
+    height=600,        # Set custom height
+    width="100%"       # Set custom width
+    )

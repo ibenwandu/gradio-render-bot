@@ -1,0 +1,112 @@
+# 📄 Professional Addendum: Ibe Nwandu
+
+---
+
+## 🔹 Overview
+
+Ibe Nwandu is a dynamic and results-driven **Business Analyst, Project Manager, and Change Facilitator** with over two decades of cross-functional experience spanning **telecommunications, consulting, mining operations, and SaaS**. Recognized for a rare ability to **bridge business needs with emerging technologies**, Ibe excels in driving **AI-powered innovation**, **customer experience transformation**, and **digital process automation**.
+
+Currently serving in dual roles as:
+- **Operations Supervisor / Change Facilitator** at **Creighton Mine (Vale Canada)**
+- **Business Analyst** at **ExpertEdge Consulting Group (ECG)**
+
+He brings a unique blend of **strategic vision, operational leadership, and hands-on technical proficiency**.
+
+---
+
+## 🔹 Core Competencies
+
+- Business Process Improvement & Automation  
+- Customer Experience Management (CEM & VOC)  
+- Agile Project Delivery (Scrum, Hybrid)  
+- AI Framework Integration (OpenAI SDK, crewAI, LangGraph, Autogen, MCP)  
+- ERP/CRM (Microsoft Dynamics 365 F&O/CE, billing, customer platforms)  
+- Testing (UAT, Smoke, Regression, Exploratory)  
+- Stakeholder Engagement & Facilitation  
+- Change Management & Service Delivery Optimization  
+- Low-Code Platforms & API Integration  
+- Strategic Planning & Data-Driven Decision Making
+
+---
+
+## 🔹 Select Projects & Initiatives
+
+### ✅ AI Agent-Driven Workflow Automation (ECG)
+- Developed intelligent agents using **CrewAI** and **OpenAI SDK** to automate requirement tracking and test script generation.
+- Enhanced testing and QA processes with AI-driven prompt engineering and low-code integration.
+
+### ✅ CX Transformation Program – Telecom
+- Led nationwide **Customer Experience Management (CEM)** strategy implementation at **ntel**, improving **NPS and resolution SLAs**.
+- Rolled out a self-care digital portal integrated with CRM and billing systems, improving self-service adoption by over 60%.
+
+### ✅ CRM & ERP Optimization – Airtel
+- Spearheaded multiple CRM upgrades and billing platform transitions.
+- Conducted regression and exploratory testing to support seamless platform migration across regions.
+- Delivered dashboards for regional performance monitoring and executive reporting.
+
+### ✅ Process Optimization – Mining Operations (Creighton Mine)
+- Introduced digital checklists and automated shift reporting, improving compliance and communication across underground operations.
+- Supported culture change initiatives to drive safety, accountability, and operational efficiency.
+
+### ✅ Digital Product Management – VasHub
+- Managed a portfolio of B2B SaaS products; collaborated with stakeholders to gather requirements, prioritize features, and run sprint-based delivery.
+- Implemented automated onboarding workflows that reduced manual intervention by 45%.
+
+---
+
+## 🔹 Certifications
+
+- **PMP® – Project Management Professional**  
+- **Certified Scrum Professional® – ScrumMaster**  
+- **Digital Product Management** – University of Virginia (Darden School of Business)  
+- **ITIL Certification – Service Management Processes**  
+- **WHMIS, AODA & St. John Ambulance Standard First Aid CPR C + AED**  
+- **Licensed Agent – Life & A&S Insurance**
+
+---
+
+## 🔹 Technical Skills & Tools
+
+- **Frameworks**: OpenAI SDK, LangGraph, crewAI, Autogen  
+- **CRM/ERP**: Microsoft Dynamics 365 CE & F&O, Custom Telecom CRMs  
+- **Testing Tools**: Jira, Azure DevOps, Excel, Postman  
+- **Modeling & Documentation**: Visio, Lucidchart, BPMN  
+- **Data Analysis**: SQL, Power BI, Excel  
+- **Agile/PM Tools**: Jira, Trello, Confluence, MS Project  
+- **Coding (Basics)**: Python, YAML, Markdown  
+- **Low-Code Platforms**: Power Apps, AppSheet
+
+---
+
+## 🔹 Education
+
+- **MBA, Management Engineering** – University of Manchester  
+- **B.Sc., Pharmacology** – University of Lagos  
+- Executive training from Lagos Business School, University of Virginia, and other international institutions.
+
+---
+
+## 🔹 Personal Interests & Hobbies
+
+Outside of work, Ibe is passionate about:
+- **DIY engineering and home automation**  
+- **AI experimentation and prompt engineering**  
+- **Mentorship and youth empowerment**  
+- **Mining safety culture and operational efficiency**  
+- **Traveling and cultural discovery**  
+- **Volunteering in community development and church activities**
+
+---
+
+## 🔹 Career Objective
+
+To lead and collaborate on **impact-driven digital transformation projects**—particularly at the intersection of **AI, business analysis, and customer experience**—delivering real value through **practical innovation, stakeholder engagement, and data-backed decision-making**.
+
+---
+
+## 🔹 Contact & Online Presence
+
+- **LinkedIn**: [linkedin.com/in/ibenwandu](https://linkedin.com/in/ibenwandu)  
+- **GitHub**: [github.com/ibenwandu](https://github.com/ibenwandu) *(AI projects portfolio — in progress)*  
+- **Email**: ibenwandu@gmail.com  
+- **Location**: Ontario, Canada
