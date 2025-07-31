@@ -177,7 +177,7 @@ if __name__ == "__main__":
         body_text_color="#000000"
     )
 
-  def check_password(pw):
+def check_password(pw):
     if pw == PASSWORD:
         return (
             gr.update(visible=True),   # Show chatbot area
