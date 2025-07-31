@@ -169,40 +169,63 @@ import gradio as gr
 if __name__ == "__main__":
     me = Me()
     port = int(os.environ.get("PORT", 7860))
+    PASSWORD = os.getenv("CHATBOT_PASSCODE")
 
-    # Custom theme
+        # Custom theme
     dark_theme = gr.themes.Base().set(
         body_background_fill="#2778c4",
         body_text_color="#000000"
     )
 
-    with gr.Blocks(theme=dark_theme) as demo:
-        # Inject JS to remove footer
-        gr.HTML("""
-          <style>
-        footer { display: none !important; }
-        .svelte-1ipelgc { display: none !important; } /* Older Gradio versions */
-        .prose a[href*="gradio.app"] { display: none !important; } /* Remove any Gradio reference */
-    </style>
-        """)
-        # Chat interface
-        chatbot = gr.ChatInterface(
-            fn=me.chat,
-            type="messages",
-            title=None,
-            description=None
-        )
+    def check_password(pw):
+        if pw == PASSWORD:
+            return gr.update(visible=True), gr.update(visible=False), gr.update(visible=False)
+        else:
+            return gr.update(visible=False), gr.update(visible=True, value="❌ Wrong password. Try again."), gr.update()
 
-        # Footer credit (your custom footer)
+    with gr.Blocks(theme=dark_theme) as demo:
+        # Inject JS/CSS to remove footer
         gr.HTML("""
-        <div style='text-align:center; color:red; padding:1em; font-size:1.2em; font-style:italic;'>
-            Ibe Nwandu
-        </div>
+            <style>
+                footer { display: none !important; }
+                .svelte-1ipelgc { display: none !important; }
+                .prose a[href*="gradio.app"] { display: none !important; }
+            </style>
         """)
-    
-demo.launch(
-    server_name="0.0.0.0",
-    share=False,
-    show_error=True,
-    show_api=False  # Hides API usage instructions
-)
+
+        with gr.Column():
+            passkey_input = gr.Textbox(
+                label="🔑 Enter Access Code", 
+                type="password", 
+                placeholder="Enter password to unlock chatbot"
+            )
+            error_box = gr.Textbox(visible=False, interactive=False, show_label=False)
+
+            chatbot = gr.ChatInterface(
+                fn=me.chat,
+                type="messages",
+                visible=False,
+                title=None,
+                description=None
+            )
+
+            # Footer credit
+            gr.HTML("""
+            <div style='text-align:center; color:red; padding:1em; font-size:1.2em; font-style:italic;'>
+                Ibe Nwandu
+            </div>
+            """)
+
+            passkey_input.change(
+                fn=check_password,
+                inputs=passkey_input,
+                outputs=[chatbot, error_box, passkey_input]
+            )
+
+    demo.launch(
+        server_name="0.0.0.0",
+        server_port=port,
+        share=False,
+        show_error=True,
+        show_api=False
+    )
