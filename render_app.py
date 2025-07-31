@@ -196,4 +196,9 @@ if __name__ == "__main__":
         </div>
         """)
 
-    chatbot.launch(server_name="0.0.0.0", server_port=port)
+    chatbot.launch(
+        server_name="0.0.0.0", 
+        server_port=port,
+        show_api=False,
+        show_error=True
+    )
