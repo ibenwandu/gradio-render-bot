@@ -1,7 +1,6 @@
 requests
 python-dotenv
 pypdf
-openai
-openai-agents
+google-generativeai
 gdown
 gradio>=4.25.0
