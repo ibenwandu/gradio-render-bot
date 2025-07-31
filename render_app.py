@@ -126,7 +126,7 @@ class Me:
         system_prompt += f"With this context, please chat with the user, always staying in character as {self.name}."
         return system_prompt
 
-def chat_fn(self, message, history):
+    def chat_fn(self, message, history):
         try:
             # Start new chat session
             chat = self.model.start_chat(history=[])
@@ -167,7 +167,7 @@ def toggle_password(show):
     return gr.update(type="text" if show else "password")
 
 def verify_passcode(input_passcode):
-    if input_passcode == CHATBOT_PASSCODE:
+    if input_passcode == os.getenv("CHATBOT_PASSCODE"):
         return gr.update(visible=False), gr.update(visible=True)
     else:
         return gr.update(value="", label="Incorrect passcode, try again:"), gr.update(visible=False)
