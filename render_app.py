@@ -1,7 +1,7 @@
 import os
 import json
 import gdown
-from openai import OpenAI
+import google.generativeai as genai
 from pypdf import PdfReader
 import gradio as gr
 from dotenv import load_dotenv
@@ -67,7 +67,9 @@ tools = [
 
 class Me:
     def __init__(self):
-        self.openai = OpenAI()
+        # Configure Google Gemini API
+        genai.configure(api_key="AIzaSyAbDJS9LUTl_5QNx1NkXF0XLO7LcQeOnJI")
+        self.model = genai.GenerativeModel('gemini-1.5-flash')
         self.name = "Ibe Nwandu"
 
         # Download linkedin.pdf using gdown
@@ -122,19 +124,38 @@ class Me:
         return system_prompt
 
     def chat(self, message, history):
-        messages = [{"role": "system", "content": self.system_prompt()}] + history + [{"role": "user", "content": message}]
-        done = False
-        while not done:
-            response = self.openai.chat.completions.create(model="gpt-4o-mini", messages=messages, tools=tools)
-            if response.choices[0].finish_reason == "tool_calls":
-                message = response.choices[0].message
-                tool_calls = message.tool_calls
-                results = self.handle_tool_call(tool_calls)
-                messages.append(message)
-                messages.extend(results)
-            else:
-                done = True
-        return response.choices[0].message.content
+        # Convert history to Gemini format
+        chat = self.model.start_chat(history=[])
+        
+        # Add system prompt as the first message
+        system_prompt = self.system_prompt()
+        
+        # Prepare the conversation context
+        conversation = []
+        for msg in history:
+            if msg["role"] == "user":
+                conversation.append({"role": "user", "parts": [msg["content"]]})
+            elif msg["role"] == "assistant":
+                conversation.append({"role": "model", "parts": [msg["content"]]})
+        
+        # Add current user message
+        conversation.append({"role": "user", "parts": [message]})
+        
+        # Generate response
+        try:
+            response = self.model.generate_content(
+                system_prompt + "\n\n" + message,
+                generation_config=genai.types.GenerationConfig(
+                    temperature=0.7,
+                    top_p=0.8,
+                    top_k=40,
+                    max_output_tokens=2048,
+                )
+            )
+            return response.text
+        except Exception as e:
+            print(f"Error generating response: {e}")
+            return "I apologize, but I'm having trouble processing your request right now. Please try again."
 
 
 if __name__ == "__main__":
