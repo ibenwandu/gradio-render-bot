@@ -126,28 +126,25 @@ class Me:
         system_prompt += f"With this context, please chat with the user, always staying in character as {self.name}."
         return system_prompt
 
-    def chat_fn(self, message, history):
-        # Convert history to Gemini format
-        chat = self.model.start_chat(history=[])
-        
-        # Add system prompt as the first message
-        system_prompt = self.system_prompt()
-        
-        # Prepare the conversation context
-        conversation = []
-        for msg in history:
-            if msg["role"] == "user":
-                conversation.append({"role": "user", "parts": [msg["content"]]})
-            elif msg["role"] == "assistant":
-                conversation.append({"role": "model", "parts": [msg["content"]]})
-        
-        # Add current user message
-        conversation.append({"role": "user", "parts": [message]})
-        
-        # Generate response
+   def chat_fn(self, message, history):
         try:
+            # Start new chat session
+            chat = self.model.start_chat(history=[])
+
+            # Convert history
+            conversation = []
+            for msg in history:
+                if msg["role"] == "user":
+                    conversation.append({"role": "user", "parts": [msg["content"]]})
+                elif msg["role"] == "assistant":
+                    conversation.append({"role": "model", "parts": [msg["content"]]})
+
+            # Append latest user message
+            conversation.append({"role": "user", "parts": [message]})
+
+            # Generate response
             response = self.model.generate_content(
-                system_prompt + "\n\n" + message,
+                self.system_prompt() + "\n\n" + message,
                 generation_config=genai.types.GenerationConfig(
                     temperature=0.7,
                     top_p=0.8,
@@ -156,81 +153,76 @@ class Me:
                 )
             )
             return response.text
+
         except Exception as e:
             print(f"Error generating response: {e}")
-            return "I apologize, but I'm having trouble processing your request right now. Please try again."
+            return "Sorry, I'm having trouble processing your request right now."
 
 
-import os
-import gradio as gr
+# -------------------------------
+# Password Toggle and Verification
+# -------------------------------
 
-
-
-if __name__ == "__main__":
-    me = Me()
-    port = int(os.environ.get("PORT", 7860))
-    PASSWORD = os.getenv("CHATBOT_PASSCODE")
-# Load passcode from environment variable
-    CHATBOT_PASSCODE = os.getenv("CHATBOT_PASSCODE", "mysecret")
-        # Custom theme
-    dark_theme = gr.themes.Base().set(
-        body_background_fill="#2778c4",
-        body_text_color="#000000"
-    )
-
-# Logic to show/hide password
 def toggle_password(show):
     return gr.update(type="text" if show else "password")
 
-# Passcode check logic
 def verify_passcode(input_passcode):
     if input_passcode == CHATBOT_PASSCODE:
         return gr.update(visible=False), gr.update(visible=True)
     else:
         return gr.update(value="", label="Incorrect passcode, try again:"), gr.update(visible=False)
 
-# Components
-with gr.Blocks() as demo:
-    # Modal-style passcode screen
-    with gr.Column(visible=True) as login_view:
-        gr.Markdown("### 🔐 Enter Passcode to Access Chatbot")
 
-        pass_input = gr.Textbox(
-            label="Passcode",
-            type="password",
-            placeholder="Enter passcode...",
-            show_label=True
+# -------------------------------
+# Build and Launch the Interface
+# -------------------------------
+
+if __name__ == "__main__":
+    me = Me()
+
+    # Gradio interface with modal-style login
+    with gr.Blocks() as demo:
+        # Login view (modal-style)
+        with gr.Column(visible=True) as login_view:
+            gr.Markdown("### 🔐 Enter Passcode to Access Chatbot")
+
+            pass_input = gr.Textbox(
+                label="Passcode",
+                type="password",
+                placeholder="Enter passcode...",
+                show_label=True
+            )
+
+            show_pw_checkbox = gr.Checkbox(label="Show password")
+
+            pass_submit = gr.Button("Submit")
+
+            show_pw_checkbox.change(
+                fn=toggle_password,
+                inputs=show_pw_checkbox,
+                outputs=pass_input
+            )
+
+        # Chatbot view (hidden by default)
+        with gr.ChatInterface(
+            fn=me.chat_fn,
+            visible=False,
+            chatbot=gr.Chatbot(label="Your Assistant"),
+            textbox=gr.Textbox(placeholder="Ask something..."),
+        ) as chat_view:
+            pass
+
+        pass_submit.click(
+            fn=verify_passcode,
+            inputs=pass_input,
+            outputs=[login_view, chat_view]
         )
 
-        show_pw_checkbox = gr.Checkbox(label="Show password")
-        pass_submit = gr.Button("Submit")
-
-        # Toggle password visibility
-        show_pw_checkbox.change(
-            fn=toggle_password,
-            inputs=show_pw_checkbox,
-            outputs=pass_input
-        )
-
-    # Hidden initially — chatbot interface
-    with gr.ChatInterface(
-        fn=chat_fn,
-        visible=False,
-        chatbot=gr.Chatbot(label="Your Assistant"),
-        textbox=gr.Textbox(placeholder="Ask something..."),
-    ) as chat_view:
-        pass
-
-    # On password submit, check and toggle visibility
-    pass_submit.click(
-        fn=verify_passcode,
-        inputs=pass_input,
-        outputs=[login_view, chat_view]
+    # Launch the app
+    demo.launch(
+        server_name="0.0.0.0",
+        share=False,
+        show_error=True,
+        show_api=False,
+        server_port=int(os.environ.get("PORT", 7860))
     )
-# Launch app
-demo.launch(
-    server_name="0.0.0.0",
-    share=False,
-    show_error=True,
-    show_api=False
-) 
