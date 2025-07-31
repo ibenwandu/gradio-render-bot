@@ -165,6 +165,7 @@ import os
 import gradio as gr
 
 
+
 if __name__ == "__main__":
     me = Me()
     port = int(os.environ.get("PORT", 7860))
@@ -195,7 +196,6 @@ if __name__ == "__main__":
         chatbot = gr.ChatInterface(
             fn=me.chat,
             type="messages",
-            show_label=False,
             title=None,
             description=None
         )
@@ -214,5 +214,3 @@ if __name__ == "__main__":
         show_tips=False,
         show_error=True
     )
-
-
