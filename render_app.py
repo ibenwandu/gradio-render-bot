@@ -68,7 +68,10 @@ tools = [
 class Me:
     def __init__(self):
         # Configure Google Gemini API
-        genai.configure(api_key="AIzaSyAbDJS9LUTl_5QNx1NkXF0XLO7LcQeOnJI")
+        api_key = os.getenv("GOOGLE_API_KEY")
+        if not api_key:
+            raise ValueError("GOOGLE_API_KEY environment variable is required")
+        genai.configure(api_key=api_key)
         self.model = genai.GenerativeModel('gemini-1.5-flash')
         self.name = "Ibe Nwandu"
 
