@@ -182,9 +182,9 @@ if __name__ == "__main__":
         # Chatbot View (Initially Hidden)
         with gr.ChatInterface(
             fn=me.chat_fn,
-            visible=False,
-            chatbot=gr.Chatbot(label="Your Assistant"),
+            chatbot=gr.Chatbot(label="Your Assistant", type="messages"),
             textbox=gr.Textbox(placeholder="Ask something..."),
+            theme="default"
         ) as chat_view:
             pass
 
