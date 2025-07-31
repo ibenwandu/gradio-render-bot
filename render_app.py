@@ -179,19 +179,12 @@ if __name__ == "__main__":
     with gr.Blocks(theme=dark_theme) as demo:
         # Inject JS to remove footer
         gr.HTML("""
-        <script>
-        window.addEventListener('load', function () {
-            const interval = setInterval(() => {
-                const footer = document.querySelector('footer');
-                if (footer) {
-                    footer.remove();
-                    clearInterval(interval);
-                }
-            }, 500);
-        });
-        </script>
+          <style>
+        footer { display: none !important; }
+        .svelte-1ipelgc { display: none !important; } /* Older Gradio versions */
+        .prose a[href*="gradio.app"] { display: none !important; } /* Remove any Gradio reference */
+    </style>
         """)
-
         # Chat interface
         chatbot = gr.ChatInterface(
             fn=me.chat,
@@ -202,7 +195,7 @@ if __name__ == "__main__":
 
         # Footer credit (your custom footer)
         gr.HTML("""
-        <div style='text-align:center; color:red; padding:1em; font-size:1.5em; font-weight:bold; font-style:italic;'>
+        <div style='text-align:center; color:red; padding:1em; font-size:1.2em; font-style:italic;'>
             Ibe Nwandu
         </div>
         """)
