@@ -200,8 +200,5 @@ if __name__ == "__main__":
         server_name="0.0.0.0", 
         server_port=port,
         show_api=False,
-        show_error=True,
-        show_tips=False,
-        show_label=False,
-        container=False
+        show_error=True
     )
