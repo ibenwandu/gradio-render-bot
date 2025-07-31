@@ -173,13 +173,9 @@ if __name__ == "__main__":
         """)
 
     chatbot.launch(
-        server_name="0.0.0.0", 
-    server_port=port,
-    show_api=False,
-    show_error=True,
-    show_tips=False,
-    show_label=False,  # Hides labels
-    container=False,   # Removes container styling
-    height=600,        # Set custom height
-    width="100%"       # Set custom width
+   server_name="0.0.0.0", 
+        server_port=port,
+        show_api=False,
+        show_error=True,
+        show_tips=False       # Set custom width
     )
