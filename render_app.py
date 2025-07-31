@@ -67,7 +67,6 @@ tools = [
 
 class Me:
     def __init__(self):
-        # Configure Google Gemini API
         api_key = os.getenv("GOOGLE_API_KEY")
         if not api_key:
             raise ValueError("GOOGLE_API_KEY environment variable is required")
@@ -75,7 +74,6 @@ class Me:
         self.model = genai.GenerativeModel('gemini-1.5-flash')
         self.name = "Ibe Nwandu"
 
-        # Download linkedin.pdf using gdown
         linkedin_pdf_url = os.getenv("LINKEDIN_PDF_URL")
         linkedin_pdf_path = "linkedin.pdf"
         print(f"Downloading LinkedIn PDF from {linkedin_pdf_url}")
@@ -86,13 +84,8 @@ class Me:
         print(f"PDF header bytes: {header}")
 
         reader = PdfReader(linkedin_pdf_path)
-        self.linkedin = ""
-        for page in reader.pages:
-            text = page.extract_text()
-            if text:
-                self.linkedin += text
+        self.linkedin = "".join(page.extract_text() or "" for page in reader.pages)
 
-        # Download summary.txt using gdown
         summary_txt_url = os.getenv("SUMMARY_TXT_URL")
         summary_txt_path = "summary.txt"
         print(f"Downloading summary text from {summary_txt_url}")
@@ -113,47 +106,30 @@ class Me:
         return results
 
     def system_prompt(self):
-        system_prompt = (
-            f"You are acting as {self.name}. You are answering questions on {self.name}'s website, "
-            f"particularly questions related to {self.name}'s career, background, skills and experience. "
-            f"Your responsibility is to represent {self.name} for interactions on the website as faithfully as possible. "
-            f"You are given a summary of {self.name}'s background and LinkedIn profile which you can use to answer questions. "
-            f"Be professional and engaging, as if talking to a potential client or future employer who came across the website. "
-            f"If you don't know the answer to any question, use your record_unknown_question tool to record the question that you couldn't answer, even if it's about something trivial or unrelated to career. "
-            f"If the user is engaging in discussion, try to steer them towards getting in touch via email; ask for their email and record it using your record_user_details tool. "
+        prompt = (
+            f"You are acting as {self.name} on {self.name}'s website. Answer questions related to career, skills, "
+            f"background, and represent {self.name} faithfully. "
+            f"Use the summary and LinkedIn info provided. "
+            f"Use `record_unknown_question` tool when unsure, and try to collect user's email with `record_user_details`.\n\n"
         )
-        system_prompt += f"\n\n## Summary:\n{self.summary}\n\n## LinkedIn Profile:\n{self.linkedin}\n\n"
-        system_prompt += f"With this context, please chat with the user, always staying in character as {self.name}."
-        return system_prompt
+        prompt += f"## Summary:\n{self.summary}\n\n## LinkedIn Profile:\n{self.linkedin}\n\n"
+        return prompt
 
     def chat_fn(self, message, history):
         try:
-            # Start new chat session
             chat = self.model.start_chat(history=[])
-
-            # Convert history
-            conversation = []
-            for msg in history:
-                if msg["role"] == "user":
-                    conversation.append({"role": "user", "parts": [msg["content"]]})
-                elif msg["role"] == "assistant":
-                    conversation.append({"role": "model", "parts": [msg["content"]]})
-
-            # Append latest user message
+            conversation = [
+                {"role": msg["role"], "parts": [msg["content"]]} if msg["role"] == "user"
+                else {"role": "model", "parts": [msg["content"]]} for msg in history
+            ]
             conversation.append({"role": "user", "parts": [message]})
-
-            # Generate response
             response = self.model.generate_content(
                 self.system_prompt() + "\n\n" + message,
                 generation_config=genai.types.GenerationConfig(
-                    temperature=0.7,
-                    top_p=0.8,
-                    top_k=40,
-                    max_output_tokens=2048,
+                    temperature=0.7, top_p=0.8, top_k=40, max_output_tokens=2048,
                 )
             )
             return response.text
-
         except Exception as e:
             print(f"Error generating response: {e}")
             return "Sorry, I'm having trouble processing your request right now."
@@ -180,9 +156,8 @@ def verify_passcode(input_passcode):
 if __name__ == "__main__":
     me = Me()
 
-    # Gradio interface with modal-style login
     with gr.Blocks() as demo:
-        # Login view (modal-style)
+        # Modal-style Login View
         with gr.Column(visible=True) as login_view:
             gr.Markdown("### 🔐 Enter Passcode to Access Chatbot")
 
@@ -197,13 +172,14 @@ if __name__ == "__main__":
 
             pass_submit = gr.Button("Submit")
 
+            # Toggle visibility of password field
             show_pw_checkbox.change(
                 fn=toggle_password,
                 inputs=show_pw_checkbox,
                 outputs=pass_input
             )
 
-        # Chatbot view (hidden by default)
+        # Chatbot View (Initially Hidden)
         with gr.ChatInterface(
             fn=me.chat_fn,
             visible=False,
@@ -212,13 +188,13 @@ if __name__ == "__main__":
         ) as chat_view:
             pass
 
+        # Handle Submit
         pass_submit.click(
             fn=verify_passcode,
             inputs=pass_input,
             outputs=[login_view, chat_view]
         )
 
-    # Launch the app
     demo.launch(
         server_name="0.0.0.0",
         share=False,
