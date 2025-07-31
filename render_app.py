@@ -170,64 +170,63 @@ if __name__ == "__main__":
     me = Me()
     port = int(os.environ.get("PORT", 7860))
     PASSWORD = os.getenv("CHATBOT_PASSCODE")
-
+# Load passcode from environment variable
+    CHATBOT_PASSCODE = os.getenv("CHATBOT_PASSCODE", "mysecret")
         # Custom theme
     dark_theme = gr.themes.Base().set(
         body_background_fill="#2778c4",
         body_text_color="#000000"
     )
 
-def check_password(pw):
-    if pw == PASSWORD:
-        return (
-            gr.update(visible=True),   # Show chatbot area
-            gr.update(visible=False),  # Hide password input
-            ""                         # Clear error
-        )
+# Logic to show/hide password
+def toggle_password(show):
+    return gr.update(type="text" if show else "password")
+
+# Passcode check logic
+def verify_passcode(input_passcode):
+    if input_passcode == CHATBOT_PASSCODE:
+        return gr.update(visible=False), gr.update(visible=True)
     else:
-        return (
-            gr.update(visible=False),
-            gr.update(visible=True),
-            "❌ Wrong password. Try again."
+        return gr.update(value="", label="Incorrect passcode, try again:"), gr.update(visible=False)
+
+# Components
+with gr.Blocks() as demo:
+    # Modal-style passcode screen
+    with gr.Column(visible=True) as login_view:
+        gr.Markdown("### 🔐 Enter Passcode to Access Chatbot")
+
+        pass_input = gr.Textbox(
+            label="Passcode",
+            type="password",
+            placeholder="Enter passcode...",
+            show_label=True
         )
 
+        show_pw_checkbox = gr.Checkbox(label="Show password")
+        pass_submit = gr.Button("Submit")
 
-with gr.Blocks(theme=dark_theme) as demo:
-    gr.HTML("""
-    <style>
-        footer { display: none !important; }
-        .svelte-1ipelgc { display: none !important; }
-        .prose a[href*="gradio.app"] { display: none !important; }
-    </style>
-    """)
-
-    error_message = gr.Textbox(visible=False, interactive=False, show_label=False)
-    password_box = gr.Textbox(label="🔑 Enter Access Code", type="password")
-    submit_btn = gr.Button("Submit")
-
-    # Container for chatbot that can be hidden
-    chatbot_group = gr.Group(visible=False)
-    with chatbot_group:
-        gr.ChatInterface(
-            fn=me.chat,
-            title=None,
-            description=None
+        # Toggle password visibility
+        show_pw_checkbox.change(
+            fn=toggle_password,
+            inputs=show_pw_checkbox,
+            outputs=pass_input
         )
 
-    # Footer
-    gr.HTML("""
-    <div style='text-align:center; color:red; padding:1em; font-size:1.2em; font-style:italic;'>
-        Ibe Nwandu
-    </div>
-    """)
+    # Hidden initially — chatbot interface
+    with gr.ChatInterface(
+        fn=chat_fn,
+        visible=False,
+        chatbot=gr.Chatbot(label="Your Assistant"),
+        textbox=gr.Textbox(placeholder="Ask something..."),
+    ) as chat_view:
+        pass
 
-    # Button logic
-    submit_btn.click(
-        fn=check_password,
-        inputs=password_box,
-        outputs=[chatbot_group, password_box, error_message]
+    # On password submit, check and toggle visibility
+    pass_submit.click(
+        fn=verify_passcode,
+        inputs=pass_input,
+        outputs=[login_view, chat_view]
     )
-
 # Launch app
 demo.launch(
     server_name="0.0.0.0",
