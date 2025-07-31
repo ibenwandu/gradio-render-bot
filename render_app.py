@@ -206,11 +206,10 @@ if __name__ == "__main__":
             Ibe Nwandu
         </div>
         """)
-
-    demo.launch(
-        server_name="0.0.0.0",
-        server_port=port,
-        show_api=False,
-        show_tips=False,
-        show_error=True
-    )
+    
+demo.launch(
+    server_name="0.0.0.0",
+    share=False,
+    show_error=True,
+    show_api=False  # Hides API usage instructions
+)
