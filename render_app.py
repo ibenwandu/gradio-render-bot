@@ -127,22 +127,8 @@ class Me:
         return system_prompt
 
     def chat(self, message, history):
-        # Convert history to Gemini format
-        chat = self.model.start_chat(history=[])
-        
         # Add system prompt as the first message
         system_prompt = self.system_prompt()
-        
-        # Prepare the conversation context
-        conversation = []
-        for msg in history:
-            if msg["role"] == "user":
-                conversation.append({"role": "user", "parts": [msg["content"]]})
-            elif msg["role"] == "assistant":
-                conversation.append({"role": "model", "parts": [msg["content"]]})
-        
-        # Add current user message
-        conversation.append({"role": "user", "parts": [message]})
         
         # Generate response
         try:
