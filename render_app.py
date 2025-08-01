@@ -130,6 +130,20 @@ class Me:
         # Add system prompt as the first message
         system_prompt = self.system_prompt()
         
+        # Check for email in the message and record it
+        if "@" in message and ".com" in message.lower():
+            # Extract email from message
+            import re
+            email_match = re.search(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', message)
+            if email_match:
+                email = email_match.group()
+                record_user_details(email, "User from chat", f"User provided email: {email}")
+        
+        # Check if this is an unknown question (simple heuristic)
+        unknown_keywords = ["salary", "compensation", "pay", "money", "rate", "hourly", "daily"]
+        if any(keyword in message.lower() for keyword in unknown_keywords):
+            record_unknown_question(message)
+        
         # Generate response
         try:
             response = self.model.generate_content(
