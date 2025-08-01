@@ -172,48 +172,34 @@ if __name__ == "__main__":
         body_text_color="#000000"
     )
 
-    with gr.Blocks(theme=dark_theme) as demo:
-        gr.HTML("""
-        <style>
-            footer { display: none !important; }
-            .svelte-1ipelgc { display: none !important; }
-            .prose a[href*="gradio.app"] { display: none !important; }
-        </style>
-        """)
 
-        error_message = gr.Markdown("", visible=True)
-        password_box = gr.Textbox(label="🔑 Enter Access Code", type="password", placeholder="Enter passcode here...")
+    with gr.Blocks() as demo:
+        login_status = gr.State(False)
+
+    with gr.Column(visible=True) as login_block:
         show_password_checkbox = gr.Checkbox(label="Show password")
+        password_box = gr.Textbox(label="Enter password", type="password")
         submit_btn = gr.Button("Submit")
 
-        chatbot_group = gr.Group(visible=False)
-        with chatbot_group:
-            gr.ChatInterface(
-                fn=me.chat_fn,
-                chatbot=gr.Chatbot(label="Your Assistant"),
-                textbox=gr.Textbox(placeholder="Ask something..."),
-                title=None,
-                description=None
-            )
+    with gr.Column(visible=False) as chatbot_block:
+        chatbot = gr.Chatbot(label="Your Assistant")
+        user_input = gr.Textbox(placeholder="Type your message here...", label="Message")
+        send_btn = gr.Button("Send")
+        clear_btn = gr.Button("Clear")
+        error_message = gr.Markdown("", visible=False)
 
-        gr.HTML("""
-        <div style='text-align:center; color:red; padding:1em; font-size:1.2em; font-style:italic;'>
-            Ibe Nwandu
-        </div>
-        """)
+    def handle_login(pw):
+        if pw == os.environ.get("MY_SECRET_PASSWORD"):
+            return gr.update(visible=False), gr.update(visible=True), True
+        else:
+            return gr.update(visible=True), gr.update(visible=False), False
 
-        # Events
-        show_password_checkbox.change(
-            fn=toggle_password,
-            inputs=show_password_checkbox,
-            outputs=password_box
-        )
+    submit_btn.click(
+        fn=handle_login,
+        inputs=[password_box],
+        outputs=[login_block, chatbot_block, login_status]
+    )
 
-        submit_btn.click(
-            fn=check_password,
-            inputs=password_box,
-            outputs=[chatbot_group, password_box, error_message]
-        )
 
     demo.launch(
         server_name="0.0.0.0",
