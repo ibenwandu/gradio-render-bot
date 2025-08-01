@@ -192,6 +192,10 @@ def check_password(pw):
         )
 
 
+def toggle_password_visibility(show):
+    return gr.update(type="text" if show else "password")
+
+
 with gr.Blocks(theme=dark_theme) as demo:
     gr.HTML("""
     <style>
@@ -203,6 +207,7 @@ with gr.Blocks(theme=dark_theme) as demo:
 
     error_message = gr.Textbox(visible=False, interactive=False, show_label=False)
     password_box = gr.Textbox(label="🔑 Enter Access Code", type="password")
+    show_password_checkbox = gr.Checkbox(label="Show password")
     submit_btn = gr.Button("Submit")
 
     # Container for chatbot that can be hidden
@@ -220,6 +225,13 @@ with gr.Blocks(theme=dark_theme) as demo:
         Ibe Nwandu
     </div>
     """)
+
+    # Show/hide password logic
+    show_password_checkbox.change(
+        fn=toggle_password_visibility,
+        inputs=show_password_checkbox,
+        outputs=password_box
+    )
 
     # Button logic
     submit_btn.click(
