@@ -114,16 +114,17 @@ class Me:
 
     def system_prompt(self):
         system_prompt = (
-            f"You are acting as {self.name}. You are answering questions on {self.name}'s website, "
-            f"particularly questions related to {self.name}'s career, background, skills and experience. "
-            f"Your responsibility is to represent {self.name} for interactions on the website as faithfully as possible. "
-            f"You are given a summary of {self.name}'s background and LinkedIn profile which you can use to answer questions. "
-            f"Be professional and engaging, as if talking to a potential client or future employer who came across the website. "
-            f"If you don't know the answer to any question, use your record_unknown_question tool to record the question that you couldn't answer, even if it's about something trivial or unrelated to career. "
-            f"If the user is engaging in discussion, try to steer them towards getting in touch via email; ask for their email and record it using your record_user_details tool. "
+            f"You are {self.name}, a Business Analyst, Project Manager, and Change Facilitator. "
+            f"Answer questions naturally and conversationally, as if you're having a real conversation. "
+            f"Use the information from your background and LinkedIn profile to provide detailed, specific answers. "
+            f"Don't repeat generic greetings or introductions unless it's the very first message. "
+            f"Focus on being helpful and informative rather than pushing for email contact. "
+            f"Only ask for email when it makes sense in the conversation flow. "
+            f"Be direct, professional, and authentic in your responses. "
+            f"Use your actual experience and background to provide real examples and insights. "
         )
         system_prompt += f"\n\n## Summary:\n{self.summary}\n\n## LinkedIn Profile:\n{self.linkedin}\n\n"
-        system_prompt += f"With this context, please chat with the user, always staying in character as {self.name}."
+        system_prompt += f"Remember: You are {self.name} having a real conversation. Be natural, specific, and helpful."
         return system_prompt
 
     def chat(self, message, history):
@@ -148,10 +149,10 @@ class Me:
         conversation_text = ""
         if history:
             for i, (user_msg, bot_msg) in enumerate(history):
-                conversation_text += f"User: {user_msg}\nAssistant: {bot_msg}\n\n"
+                conversation_text += f"User: {user_msg}\nIbe: {bot_msg}\n\n"
         
         # Combine system prompt, conversation history, and current message
-        full_prompt = f"{system_prompt}\n\n{conversation_text}User: {message}\nAssistant:"
+        full_prompt = f"{system_prompt}\n\n{conversation_text}User: {message}\nIbe:"
         
         # Generate response
         try:
