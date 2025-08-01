@@ -65,7 +65,6 @@ tools = [
 ]
 
 
-# --- Your Me class as before (keep your implementation) ---
 class Me:
     def __init__(self):
         api_key = os.getenv("GOOGLE_API_KEY")
@@ -140,7 +139,6 @@ class Me:
             return "Sorry, I'm having trouble processing your request right now."
 
 
-# --- Password logic ---
 def toggle_password(show):
     return gr.update(type="text" if show else "password")
 
@@ -161,8 +159,6 @@ def check_password(pw):
         )
 
 
-# --- Main Interface ---
-
 if __name__ == "__main__":
     me = Me()
     port = int(os.environ.get("PORT", 7860))
@@ -172,71 +168,43 @@ if __name__ == "__main__":
         body_text_color="#000000"
     )
 
-
-    with gr.Blocks() as demo:
+    with gr.Blocks(theme=dark_theme) as demo:
         login_status = gr.State(False)
 
-    with gr.Column(visible=True) as login_block:
-        show_password_checkbox = gr.Checkbox(label="Show password")
-        password_box = gr.Textbox(label="Enter password", type="password")
-        submit_btn = gr.Button("Submit")
+        with gr.Column(visible=True) as login_block:
+            password_box = gr.Textbox(label="Enter password", type="password", show_label=True)
+            show_password_checkbox = gr.Checkbox(label="Show password")
+            submit_btn = gr.Button("Submit")
 
-    with gr.Column(visible=False) as chatbot_block:
-        chatbot = gr.Chatbot(label="Your Assistant")
-        user_input = gr.Textbox(placeholder="Type your message here...", label="Message")
-        send_btn = gr.Button("Send")
-        clear_btn = gr.Button("Clear")
-        error_message = gr.Markdown("", visible=False)
+        with gr.Column(visible=False) as chatbot_block:
+            chatbot = gr.Chatbot(label="Your Assistant")
+            user_input = gr.Textbox(placeholder="Type your message here...", label="Message")
+            send_btn = gr.Button("Send")
+            clear_btn = gr.Button("Clear")
+            error_message = gr.Markdown("", visible=False)
 
-    def handle_login(pw):
-        if pw == os.environ.get("MY_SECRET_PASSWORD"):
-            return gr.update(visible=False), gr.update(visible=True), True
-        else:
-            return gr.update(visible=True), gr.update(visible=False), False
+        # Show/hide password logic
+        def toggle_password_visibility(show):
+            return gr.update(type="text" if show else "password")
 
-    submit_btn.click(
-        fn=handle_login,
-        inputs=[password_box],
-        outputs=[login_block, chatbot_block, login_status]
-    )
-with gr.Blocks() as demo:
-    login_status = gr.State(False)
+        show_password_checkbox.change(
+            fn=toggle_password_visibility,
+            inputs=show_password_checkbox,
+            outputs=password_box
+        )
 
-    with gr.Column(visible=True) as login_block:
-        password_box = gr.Textbox(label="Enter password", type="password", show_label=True)
-        show_password_checkbox = gr.Checkbox(label="Show password")
-        submit_btn = gr.Button("Submit")
+        # Login handler
+        def handle_login(pw):
+            if pw == os.environ.get("MY_SECRET_PASSWORD"):
+                return gr.update(visible=False), gr.update(visible=True), True
+            else:
+                return gr.update(visible=True), gr.update(visible=False), False
 
-    with gr.Column(visible=False) as chatbot_block:
-        chatbot = gr.Chatbot(label="Your Assistant")
-        user_input = gr.Textbox(placeholder="Type your message here...", label="Message")
-        send_btn = gr.Button("Send")
-        clear_btn = gr.Button("Clear")
-        error_message = gr.Markdown("", visible=False)
-
-    # Show/hide password logic
-    def toggle_password_visibility(show):
-        return gr.update(type="text" if show else "password")
-
-    show_password_checkbox.change(
-        fn=toggle_password_visibility,
-        inputs=show_password_checkbox,
-        outputs=password_box
-    )
-
-    # Login handler
-    def handle_login(pw):
-        if pw == os.environ.get("MY_SECRET_PASSWORD"):
-            return gr.update(visible=False), gr.update(visible=True), True
-        else:
-            return gr.update(visible=True), gr.update(visible=False), False
-
-    submit_btn.click(
-        fn=handle_login,
-        inputs=[password_box],
-        outputs=[login_block, chatbot_block, login_status]
-    )   
-
+        submit_btn.click(
+            fn=handle_login,
+            inputs=[password_box],
+            outputs=[login_block, chatbot_block, login_status]
+        )
 
     demo.launch(
         server_name="0.0.0.0",
