@@ -181,7 +181,7 @@ if __name__ == "__main__":
         </style>
         """)
 
-        error_message = gr.Markdown("", visible=True, interactive=False)
+        error_message = gr.Markdown("", visible=True)
         password_box = gr.Textbox(label="🔑 Enter Access Code", type="password", placeholder="Enter passcode here...")
         show_password_checkbox = gr.Checkbox(label="Show password")
         submit_btn = gr.Button("Submit")
