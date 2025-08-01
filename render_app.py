@@ -127,9 +127,6 @@ class Me:
         return system_prompt
 
     def chat(self, message, history):
-        # Add system prompt as the first message
-        system_prompt = self.system_prompt()
-        
         # Check for email in the message and record it
         if "@" in message and ".com" in message.lower():
             # Extract email from message
@@ -144,14 +141,26 @@ class Me:
         if any(keyword in message.lower() for keyword in unknown_keywords):
             record_unknown_question(message)
         
+        # Build conversation context
+        system_prompt = self.system_prompt()
+        
+        # Create conversation history for context
+        conversation_text = ""
+        if history:
+            for i, (user_msg, bot_msg) in enumerate(history):
+                conversation_text += f"User: {user_msg}\nAssistant: {bot_msg}\n\n"
+        
+        # Combine system prompt, conversation history, and current message
+        full_prompt = f"{system_prompt}\n\n{conversation_text}User: {message}\nAssistant:"
+        
         # Generate response
         try:
             response = self.model.generate_content(
-                system_prompt + "\n\n" + message,
+                full_prompt,
                 generation_config=genai.types.GenerationConfig(
-                    temperature=0.7,
-                    top_p=0.8,
-                    top_k=40,
+                    temperature=0.8,
+                    top_p=0.9,
+                    top_k=50,
                     max_output_tokens=2048,
                 )
             )
