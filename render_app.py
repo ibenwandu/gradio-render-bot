@@ -177,30 +177,28 @@ if __name__ == "__main__":
         body_text_color="#000000"
     )
 
-def check_password(pw):
-    if pw == PASSWORD:
-        return (
-            gr.update(visible=True),   # Show chatbot area
-            gr.update(visible=False),  # Hide password input
-            gr.update(visible=False),  # Hide checkbox
-            gr.update(visible=False),  # Hide submit button
-            ""                         # Clear error
-        )
-    else:
-        return (
-            gr.update(visible=False),
-            gr.update(visible=True),
-            gr.update(visible=True),
-            gr.update(visible=True),
-            "❌ Wrong password. Try again."
-        )
-
-
-def toggle_password_visibility(show):
-    return gr.update(type="text" if show else "password")
-
-
 with gr.Blocks(theme=dark_theme) as demo:
+    # Define functions inside the blocks context
+    def check_password(pw):
+        if pw == PASSWORD:
+            return (
+                gr.update(visible=True),   # Show chatbot area
+                gr.update(visible=False),  # Hide password input
+                gr.update(visible=False),  # Hide checkbox
+                gr.update(visible=False),  # Hide submit button
+                ""                         # Clear error
+            )
+        else:
+            return (
+                gr.update(visible=False),
+                gr.update(visible=True),
+                gr.update(visible=True),
+                gr.update(visible=True),
+                "❌ Wrong password. Try again."
+            )
+
+    def toggle_password_visibility(show):
+        return gr.update(type="text" if show else "password")
     gr.HTML("""
     <style>
         footer { display: none !important; }
