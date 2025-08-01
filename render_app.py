@@ -182,11 +182,15 @@ def check_password(pw):
         return (
             gr.update(visible=True),   # Show chatbot area
             gr.update(visible=False),  # Hide password input
+            gr.update(visible=False),  # Hide checkbox
+            gr.update(visible=False),  # Hide submit button
             ""                         # Clear error
         )
     else:
         return (
             gr.update(visible=False),
+            gr.update(visible=True),
+            gr.update(visible=True),
             gr.update(visible=True),
             "❌ Wrong password. Try again."
         )
@@ -237,7 +241,7 @@ with gr.Blocks(theme=dark_theme) as demo:
     submit_btn.click(
         fn=check_password,
         inputs=password_box,
-        outputs=[chatbot_group, password_box, error_message]
+        outputs=[chatbot_group, password_box, show_password_checkbox, submit_btn, error_message]
     )
 
 # Launch app
