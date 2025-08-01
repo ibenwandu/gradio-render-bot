@@ -67,6 +67,7 @@ tools = [
 
 class Me:
     def __init__(self):
+        # Configure Google Gemini API
         api_key = os.getenv("GOOGLE_API_KEY")
         if not api_key:
             raise ValueError("GOOGLE_API_KEY environment variable is required")
@@ -74,6 +75,7 @@ class Me:
         self.model = genai.GenerativeModel('gemini-1.5-flash')
         self.name = "Ibe Nwandu"
 
+        # Download linkedin.pdf using gdown
         linkedin_pdf_url = os.getenv("LINKEDIN_PDF_URL")
         linkedin_pdf_path = "linkedin.pdf"
         print(f"Downloading LinkedIn PDF from {linkedin_pdf_url}")
@@ -90,6 +92,7 @@ class Me:
             if text:
                 self.linkedin += text
 
+        # Download summary.txt using gdown
         summary_txt_url = os.getenv("SUMMARY_TXT_URL")
         summary_txt_path = "summary.txt"
         print(f"Downloading summary text from {summary_txt_url}")
@@ -97,6 +100,17 @@ class Me:
 
         with open(summary_txt_path, "r", encoding="utf-8") as f:
             self.summary = f.read()
+
+    def handle_tool_call(self, tool_calls):
+        results = []
+        for tool_call in tool_calls:
+            tool_name = tool_call.function.name
+            arguments = json.loads(tool_call.function.arguments)
+            print(f"Tool called: {tool_name}", flush=True)
+            tool = globals().get(tool_name)
+            result = tool(**arguments) if tool else {}
+            results.append({"role": "tool", "content": json.dumps(result), "tool_call_id": tool_call.id})
+        return results
 
     def system_prompt(self):
         system_prompt = (
@@ -112,19 +126,28 @@ class Me:
         system_prompt += f"With this context, please chat with the user, always staying in character as {self.name}."
         return system_prompt
 
-    def chat_fn(self, message, history):
+    def chat(self, message, history):
+        # Convert history to Gemini format
+        chat = self.model.start_chat(history=[])
+        
+        # Add system prompt as the first message
+        system_prompt = self.system_prompt()
+        
+        # Prepare the conversation context
+        conversation = []
+        for msg in history:
+            if msg["role"] == "user":
+                conversation.append({"role": "user", "parts": [msg["content"]]})
+            elif msg["role"] == "assistant":
+                conversation.append({"role": "model", "parts": [msg["content"]]})
+        
+        # Add current user message
+        conversation.append({"role": "user", "parts": [message]})
+        
+        # Generate response
         try:
-            conversation = []
-            for msg in history:
-                if msg["role"] == "user":
-                    conversation.append({"role": "user", "parts": [msg["content"]]})
-                elif msg["role"] == "assistant":
-                    conversation.append({"role": "model", "parts": [msg["content"]]})
-
-            conversation.append({"role": "user", "parts": [message]})
-
             response = self.model.generate_content(
-                self.system_prompt() + "\n\n" + message,
+                system_prompt + "\n\n" + message,
                 generation_config=genai.types.GenerationConfig(
                     temperature=0.7,
                     top_p=0.8,
@@ -133,23 +156,33 @@ class Me:
                 )
             )
             return response.text
-
         except Exception as e:
             print(f"Error generating response: {e}")
-            return "Sorry, I'm having trouble processing your request right now."
+            return "I apologize, but I'm having trouble processing your request right now. Please try again."
 
 
-def toggle_password(show):
-    return gr.update(type="text" if show else "password")
+import os
+import gradio as gr
 
+
+
+if __name__ == "__main__":
+    me = Me()
+    port = int(os.environ.get("PORT", 7860))
+    PASSWORD = os.getenv("CHATBOT_PASSCODE")
+
+        # Custom theme
+    dark_theme = gr.themes.Base().set(
+        body_background_fill="#2778c4",
+        body_text_color="#000000"
+    )
 
 def check_password(pw):
-    PASSWORD = os.getenv("CHATBOT_PASSCODE")
     if pw == PASSWORD:
         return (
             gr.update(visible=True),   # Show chatbot area
-            gr.update(visible=False),  # Hide password input area
-            "",                        # Clear error message
+            gr.update(visible=False),  # Hide password input
+            ""                         # Clear error
         )
     else:
         return (
@@ -159,57 +192,46 @@ def check_password(pw):
         )
 
 
-if __name__ == "__main__":
-    me = Me()
-    port = int(os.environ.get("PORT", 7860))
+with gr.Blocks(theme=dark_theme) as demo:
+    gr.HTML("""
+    <style>
+        footer { display: none !important; }
+        .svelte-1ipelgc { display: none !important; }
+        .prose a[href*="gradio.app"] { display: none !important; }
+    </style>
+    """)
 
-    dark_theme = gr.themes.Base().set(
-        body_background_fill="#2778c4",
-        body_text_color="#000000"
-    )
+    error_message = gr.Textbox(visible=False, interactive=False, show_label=False)
+    password_box = gr.Textbox(label="🔑 Enter Access Code", type="password")
+    submit_btn = gr.Button("Submit")
 
-    with gr.Blocks(theme=dark_theme) as demo:
-        login_status = gr.State(False)
-
-        with gr.Column(visible=True) as login_block:
-            password_box = gr.Textbox(label="Enter password", type="password", show_label=True)
-            show_password_checkbox = gr.Checkbox(label="Show password")
-            submit_btn = gr.Button("Submit")
-
-        with gr.Column(visible=False) as chatbot_block:
-            chatbot = gr.Chatbot(label="Your Assistant")
-            user_input = gr.Textbox(placeholder="Type your message here...", label="Message")
-            send_btn = gr.Button("Send")
-            clear_btn = gr.Button("Clear")
-            error_message = gr.Markdown("", visible=False)
-
-        # Show/hide password logic
-        def toggle_password_visibility(show):
-            return gr.update(type="text" if show else "password")
-
-        show_password_checkbox.change(
-            fn=toggle_password_visibility,
-            inputs=show_password_checkbox,
-            outputs=password_box
+    # Container for chatbot that can be hidden
+    chatbot_group = gr.Group(visible=False)
+    with chatbot_group:
+        gr.ChatInterface(
+            fn=me.chat,
+            title=None,
+            description=None
         )
 
-        # Login handler
-        def handle_login(pw):
-            if pw == os.environ.get("MY_SECRET_PASSWORD"):
-                return gr.update(visible=False), gr.update(visible=True), True
-            else:
-                return gr.update(visible=True), gr.update(visible=False), False
+    # Footer
+    gr.HTML("""
+    <div style='text-align:center; color:red; padding:1em; font-size:1.2em; font-style:italic;'>
+        Ibe Nwandu
+    </div>
+    """)
 
-        submit_btn.click(
-            fn=handle_login,
-            inputs=[password_box],
-            outputs=[login_block, chatbot_block, login_status]
-        )
-
-    demo.launch(
-        server_name="0.0.0.0",
-        server_port=port,
-        share=False,
-        show_error=True,
-        show_api=False
+    # Button logic
+    submit_btn.click(
+        fn=check_password,
+        inputs=password_box,
+        outputs=[chatbot_group, password_box, error_message]
     )
+
+# Launch app
+demo.launch(
+    server_name="0.0.0.0",
+    share=False,
+    show_error=True,
+    show_api=False
+) 
