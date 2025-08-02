@@ -145,6 +145,7 @@ class Me:
         
         # Generate response with tools
         try:
+            print(f"Making API call with prompt length: {len(full_prompt)}")
             response = self.model.generate_content(
                 full_prompt,
                 tools=tools,
@@ -155,6 +156,7 @@ class Me:
                     max_output_tokens=2048,
                 )
             )
+            print(f"Response received, finish_reason: {response.candidates[0].finish_reason}")
             
             # Handle tool calls if present
             if response.candidates[0].finish_reason == "STOP":
@@ -166,6 +168,7 @@ class Me:
                 try:
                     tool_calls = response.candidates[0].content.parts[0].function_calls
                     if tool_calls:
+                        print(f"Tool calls found: {len(tool_calls)}")
                         results = self.handle_tool_call(tool_calls)
                         # Generate final response after tool calls
                         final_response = self.model.generate_content(
@@ -180,12 +183,15 @@ class Me:
                         return final_response.text
                     else:
                         return response.text
-                except AttributeError:
+                except AttributeError as ae:
+                    print(f"AttributeError in tool handling: {ae}")
                     # No function calls found, return the response text
                     return response.text
                     
         except Exception as e:
+            import traceback
             print(f"Error generating response: {e}")
+            print(f"Full traceback: {traceback.format_exc()}")
             return "I apologize, but I'm having trouble processing your request right now. Please try again."
     
 
