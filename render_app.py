@@ -71,10 +71,8 @@ class Me:
         api_key = os.getenv("GOOGLE_API_KEY")
         if not api_key:
             raise ValueError("GOOGLE_API_KEY environment variable is required")
-        print(f"API key found, length: {len(api_key)}")
         genai.configure(api_key=api_key)
         self.model = genai.GenerativeModel('gemini-1.5-flash')
-        print(f"Model initialized: {self.model}")
         self.name = "Ibe Nwandu"
 
         # Download linkedin.pdf using gdown
@@ -108,9 +106,10 @@ class Me:
         for tool_call in tool_calls:
             tool_name = tool_call.name
             arguments = json.loads(tool_call.args)
-            print(f"Tool called: {tool_name}", flush=True)
+            print(f"Tool called: {tool_name} with args: {arguments}", flush=True)
             tool = globals().get(tool_name)
             result = tool(**arguments) if tool else {}
+            print(f"Tool result: {result}", flush=True)
             results.append(f"Tool {tool_name} result: {json.dumps(result)}")
         return "\n".join(results)
 
@@ -122,20 +121,18 @@ class Me:
             f"Your responsibility is to represent {self.name} for interactions on the website as faithfully as possible. "
             f"You are given a summary of {self.name}'s background and LinkedIn profile which you can use to answer questions. "
             f"Be professional and engaging, as if talking to a potential client or future employer who came across the website. "
-            f"If you don't know the answer to any question, use your record_unknown_question tool to record the question that you couldn't answer, even if it's about something trivial or unrelated to career. "
-            f"If the user is engaging in discussion, try to steer them towards getting in touch via email; ask for their email and record it using your record_user_details tool. "
+            f"\n\nIMPORTANT: You have access to two tools that you MUST use when appropriate:\n"
+            f"1. record_unknown_question: Use this tool whenever a user asks a question you cannot answer or don't know about. This includes questions about salary, compensation, rates, or any topic outside your expertise.\n"
+            f"2. record_user_details: Use this tool whenever a user provides an email address or shows interest in contacting you. Always ask for their email and record it.\n"
+            f"\nYou MUST use these tools when the conditions are met. Do not skip using them."
         )
         system_prompt += f"\n\n## Summary:\n{self.summary}\n\n## LinkedIn Profile:\n{self.linkedin}\n\n"
         system_prompt += f"With this context, please chat with the user, always staying in character as {self.name}."
         return system_prompt
 
     def chat(self, message, history):
-        print(f"Chat method called with message: {message}")
-        print(f"History length: {len(history) if history else 0}")
-        
         # Build conversation context for Google Generative AI
         system_prompt = self.system_prompt()
-        print(f"System prompt length: {len(system_prompt)}")
         
         # Create conversation history for context
         conversation_text = ""
@@ -148,13 +145,12 @@ class Me:
         
         # Combine system prompt, conversation history, and current message
         full_prompt = f"{system_prompt}\n\n{conversation_text}User: {message}\nIbe:"
-        print(f"Full prompt length: {len(full_prompt)}")
         
-        # Generate response without tools first to test
+        # Generate response with tools
         try:
-            print(f"Making API call with prompt length: {len(full_prompt)}")
             response = self.model.generate_content(
                 full_prompt,
+                tools=tools,
                 generation_config=genai.types.GenerationConfig(
                     temperature=0.8,
                     top_p=0.9,
@@ -162,8 +158,37 @@ class Me:
                     max_output_tokens=2048,
                 )
             )
-            print(f"Response received successfully")
-            return response.text
+            
+            # Handle tool calls if present
+            print(f"Response finish_reason: {response.candidates[0].finish_reason}", flush=True)
+            if response.candidates[0].finish_reason == "STOP":
+                return response.text
+            elif response.candidates[0].finish_reason == "SAFETY":
+                return "I apologize, but I cannot respond to that request."
+            else:
+                # Handle tool calls
+                try:
+                    tool_calls = response.candidates[0].content.parts[0].function_calls
+                    print(f"Tool calls detected: {tool_calls}", flush=True)
+                    if tool_calls:
+                        print(f"Processing {len(tool_calls)} tool calls", flush=True)
+                        results = self.handle_tool_call(tool_calls)
+                        # Generate final response after tool calls
+                        final_response = self.model.generate_content(
+                            f"{full_prompt}\n\nTool results: {results}\n\nIbe:",
+                            generation_config=genai.types.GenerationConfig(
+                                temperature=0.8,
+                                top_p=0.9,
+                                top_k=50,
+                                max_output_tokens=2048,
+                            )
+                        )
+                        return final_response.text
+                    else:
+                        return response.text
+                except AttributeError:
+                    # No function calls found, return the response text
+                    return response.text
                     
         except Exception as e:
             import traceback
