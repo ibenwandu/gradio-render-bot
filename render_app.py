@@ -233,74 +233,84 @@ class Me:
             print(f"Received message: {message}")
             print(f"History length: {len(history) if history else 0}")
             
-            # Convert Gradio history to Gemini format
-            gemini_history = []
+            # Create a new chat session
+            chat = self.model.start_chat()
             
-            # Add system prompt as first user message (Gemini doesn't have system role)
-            gemini_history.append({
-                "role": "user", 
-                "parts": [self.system_prompt()]
-            })
-            gemini_history.append({
-                "role": "model", 
-                "parts": ["I understand. I'm ready to represent Ibe Nwandu professionally and help answer questions about his background and experience."]
-            })
+            # Build the conversation context
+            conversation_parts = []
             
-            # Convert history from Gradio format to Gemini format
-            for msg in history:
-                if msg["role"] == "user":
-                    gemini_history.append({"role": "user", "parts": [msg["content"]]})
-                elif msg["role"] == "assistant":
-                    gemini_history.append({"role": "model", "parts": [msg["content"]]})
+            # Add system prompt for the first message
+            if not history:
+                conversation_parts.append(self.system_prompt())
             
-            # Start chat with history
-            chat = self.model.start_chat(history=gemini_history)
+            # Add conversation history
+            if history:
+                for msg in history:
+                    if msg["role"] == "user":
+                        conversation_parts.append(f"User: {msg['content']}")
+                    elif msg["role"] == "assistant":
+                        conversation_parts.append(f"Assistant: {msg['content']}")
             
-            # Send current message and handle tool calls like OpenAI does
-            done = False
-            current_message = message
+            # Add current user message
+            conversation_parts.append(f"User: {message}")
             
-            while not done:
-                response = chat.send_message(
-                    current_message,
-                    generation_config=genai.types.GenerationConfig(
-                        temperature=0.7,
-                        top_p=0.8,
-                        top_k=40,
-                        max_output_tokens=2048,
-                    )
+            # Combine all parts
+            full_message = "\n\n".join(conversation_parts)
+            
+            print(f"Sending to Gemini: {full_message[:200]}...")
+            
+            # Send message to Gemini
+            response = chat.send_message(
+                full_message,
+                generation_config=genai.types.GenerationConfig(
+                    temperature=0.7,
+                    top_p=0.8,
+                    top_k=40,
+                    max_output_tokens=2048,
                 )
-                
-                # Check if the response contains function calls
-                if response.candidates[0].content.parts:
-                    has_function_calls = any(
-                        hasattr(part, 'function_call') and part.function_call 
-                        for part in response.candidates[0].content.parts
-                    )
-                    
-                    if has_function_calls:
-                        # Handle function calls
-                        function_responses = []
-                        for part in response.candidates[0].content.parts:
-                            if hasattr(part, 'function_call') and part.function_call:
-                                function_response = self.handle_tool_call(part.function_call)
-                                function_responses.append(function_response)
-                        
-                        # Send function responses back to continue conversation
-                        if function_responses:
-                            current_message = function_responses
-                        else:
-                            done = True
-                    else:
-                        done = True
-                else:
-                    done = True
+            )
             
-            # Return the final text response
-            return response.text
+            print(f"Gemini response received")
+            
+            # Handle function calls if present
+            if hasattr(response, 'candidates') and response.candidates:
+                for part in response.candidates[0].content.parts:
+                    if hasattr(part, 'function_call') and part.function_call:
+                        print(f"Function call detected: {part.function_call.name}")
+                        # Handle the function call
+                        function_response = self.handle_tool_call(part.function_call)
+                        
+                        # Send function response and get final response
+                        final_response = chat.send_message(
+                            function_response,
+                            generation_config=genai.types.GenerationConfig(
+                                temperature=0.7,
+                                top_p=0.8,
+                                top_k=40,
+                                max_output_tokens=2048,
+                            )
+                        )
+                        
+                        # Extract text from final response
+                        if hasattr(final_response, 'text'):
+                            response_text = final_response.text
+                        else:
+                            response_text = str(final_response)
+                        
+                        print(f"Final response: {response_text[:100]}...")
+                        return response_text
+            
+            # Get the text response
+            if hasattr(response, 'text'):
+                response_text = response.text
+            else:
+                response_text = str(response)
+            
+            print(f"Response: {response_text[:100]}...")
+            return response_text
             
         except Exception as e:
-            print(f"Error generating response: {e}")
+            print(f"Error in chat: {e}")
             import traceback
             traceback.print_exc()
             return "I apologize, but I'm having trouble processing your request right now. Please try again."
