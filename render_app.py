@@ -79,7 +79,7 @@ class Me:
         linkedin_pdf_url = os.getenv("LINKEDIN_PDF_URL")
         linkedin_pdf_path = "linkedin.pdf"
         print(f"Downloading LinkedIn PDF from {linkedin_pdf_url}")
-        gdown.download(linkedin_pdf_url, linkedin_pdf_path, quiet=False)
+        gdown.download(linkedin_pdf_url, linkedin_pdf_path, quiet=True)
 
         with open(linkedin_pdf_path, "rb") as f:
             header = f.read(5)
@@ -96,7 +96,7 @@ class Me:
         summary_txt_url = os.getenv("SUMMARY_TXT_URL")
         summary_txt_path = "summary.txt"
         print(f"Downloading summary text from {summary_txt_url}")
-        gdown.download(summary_txt_url, summary_txt_path, quiet=False)
+        gdown.download(summary_txt_url, summary_txt_path, quiet=True)
 
         with open(summary_txt_path, "r", encoding="utf-8") as f:
             self.summary = f.read()
@@ -113,51 +113,26 @@ class Me:
         return results
 
     def system_prompt(self):
+
         system_prompt = (
-            f"You are {self.name}, a Business Analyst, Project Manager, and Change Facilitator. "
-            f"Maintain a professional, business-appropriate tone at all times. "
-            f"Use formal language and avoid casual expressions like 'Hi there', 'What's up', or 'bunch of'. "
-            f"Provide detailed, specific answers based on your background and LinkedIn profile. "
-            f"Be professional, courteous, and informative in all responses. "
-            f"Use proper business language and maintain a formal tone throughout the conversation. "
-            f"Focus on being helpful and professional rather than casual or informal. "
-            f"Use your actual experience and background to provide real examples and insights. "
+            f"You are acting as {self.name}. You are answering questions on {self.name}'s website, "
+            f"particularly questions related to {self.name}'s career, background, skills and experience. "
+            f"Your responsibility is to represent {self.name} for interactions on the website as faithfully as possible. "
+            f"You are given a summary of {self.name}'s background and LinkedIn profile which you can use to answer questions. "
+            f"Be professional and engaging, as if talking to a potential client or future employer who came across the website. "
+            f"If you don't know the answer to any question, use your record_unknown_question tool to record the question that you couldn't answer, even if it's about something trivial or unrelated to career. "
+            f"If the user is engaging in discussion, try to steer them towards getting in touch via email; ask for their email and record it using your record_user_details tool. "
         )
         system_prompt += f"\n\n## Summary:\n{self.summary}\n\n## LinkedIn Profile:\n{self.linkedin}\n\n"
-        system_prompt += f"Remember: You are {self.name} in a professional business context. Maintain formal, professional language."
+        system_prompt += f"With this context, please chat with the user, always staying in character as {self.name}."
         return system_prompt
 
     def chat(self, message, history):
-        # Check for email in the message and record it
-        if "@" in message and ".com" in message.lower():
-            # Extract email from message
-            import re
-            email_match = re.search(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', message)
-            if email_match:
-                email = email_match.group()
-                record_user_details(email, "User from chat", f"User provided email: {email}")
-        
-        # Check if this is an unknown question (simple heuristic)
-        unknown_keywords = ["salary", "compensation", "pay", "money", "rate", "hourly", "daily"]
-        if any(keyword in message.lower() for keyword in unknown_keywords):
-            record_unknown_question(message)
-        
-        # Build conversation context
-        system_prompt = self.system_prompt()
-        
-        # Create conversation history for context
-        conversation_text = ""
-        if history:
-            for i, (user_msg, bot_msg) in enumerate(history):
-                conversation_text += f"User: {user_msg}\nIbe: {bot_msg}\n\n"
-        
-        # Combine system prompt, conversation history, and current message
-        full_prompt = f"{system_prompt}\n\n{conversation_text}User: {message}\nIbe:"
-        
-        # Generate response
-        try:
+        messages = [{"role": "system", "content": self.system_prompt()}] + history + [{"role": "user", "content": message}]
+        done = False
+        while not done:
             response = self.model.generate_content(
-                full_prompt,
+                messages,
                 generation_config=genai.types.GenerationConfig(
                     temperature=0.8,
                     top_p=0.9,
@@ -165,11 +140,18 @@ class Me:
                     max_output_tokens=2048,
                 )
             )
-            return response.text
-        except Exception as e:
-            print(f"Error generating response: {e}")
-            return "I apologize, but I'm having trouble processing your request right now. Please try again."
-
+			
+			
+            if response.choices[0].finish_reason == "tool_calls":
+                message = response.choices[0].message
+                tool_calls = message.tool_calls
+                results = self.handle_tool_call(tool_calls)
+                messages.append(message)
+                messages.extend(results)
+            else:
+                done = True
+        return response.choices[0].message.content
+    
 
 import os
 import gradio as gr
@@ -228,7 +210,8 @@ with gr.Blocks(theme=dark_theme) as demo:
         gr.ChatInterface(
             fn=me.chat,
             title=None,
-            description=None
+            description=None,
+            type="messages"
         )
 
     # Footer
