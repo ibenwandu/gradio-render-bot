@@ -318,7 +318,7 @@ class Me:
 
 if __name__ == "__main__":
     me = Me()
-    port = int(os.environ.get("PORT", 7861))  # Use port 7861 instead of 7860
+    port = int(os.environ.get("PORT", 10000))  # Use port 10000 as default for Render
     
     # Custom theme
     dark_theme = gr.themes.Base().set(
@@ -413,7 +413,7 @@ if __name__ == "__main__":
 
     # Launch app
     demo.launch(
-        server_name="127.0.0.1",  # Use localhost instead of 0.0.0.0
+        server_name="0.0.0.0",  # Use 0.0.0.0 for Render deployment
         server_port=port,
         share=False,
         show_error=True,
