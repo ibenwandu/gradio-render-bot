@@ -131,22 +131,33 @@ class Me:
         return system_prompt
 
     def chat(self, message, history):
-        # Build conversation context for Google Generative AI
-        system_prompt = self.system_prompt()
-        
-        # Create conversation history for context
+    # Build system prompt
+        try:
+            system_prompt = self.system_prompt()
+        except Exception as e:
+            print("❌ Failed to build system prompt.")
+            print(f"Error: {e}")
+            return "⚠️ Internal error generating prompt. Please check logs."
+
+        # Create conversation history
         conversation_text = ""
-        if history:
-            for msg in history:
-                if msg["role"] == "user":
-                    conversation_text += f"User: {msg['content']}\n"
-                elif msg["role"] == "assistant":
-                    conversation_text += f"Ibe: {msg['content']}\n\n"
-        
-        # Combine system prompt, conversation history, and current message
+        try:
+            if history:
+                for msg in history:
+                    if msg["role"] == "user":
+                        conversation_text += f"User: {msg['content']}\n"
+                    elif msg["role"] == "assistant":
+                        conversation_text += f"Ibe: {msg['content']}\n\n"
+        except Exception as e:
+            print("❌ Failed while formatting conversation history.")
+            print(f"Error: {e}")
+            return "⚠️ Error building conversation history."
+
+        # Final prompt
         full_prompt = f"{system_prompt}\n\n{conversation_text}User: {message}\nIbe:"
-        
-        # Generate response with tools
+        print("📤 Final prompt preview:\n", full_prompt[:1000])  # Preview first 1000 characters
+
+        # First Gemini call
         try:
             response = self.model.generate_content(
                 full_prompt,
@@ -158,22 +169,30 @@ class Me:
                     max_output_tokens=2048,
                 )
             )
-            
-            # Handle tool calls if present
-            print(f"Response finish_reason: {response.candidates[0].finish_reason}", flush=True)
+            print("✅ Gemini API call successful.")
+            print("📩 Finish reason:", response.candidates[0].finish_reason)
+        except Exception as e:
+            import traceback
+            print("❌ Gemini generate_content() failed.")
+            print(f"Error: {e}")
+            print("Traceback:\n", traceback.format_exc())
+            return "⚠️ Gemini API failed. Check logs for details."
+
+        # Handle response
+        try:
             if response.candidates[0].finish_reason == "STOP":
                 return response.text
             elif response.candidates[0].finish_reason == "SAFETY":
-                return "I apologize, but I cannot respond to that request."
+                return "⚠️ Response flagged by content safety filters."
             else:
-                # Handle tool calls
                 try:
                     tool_calls = response.candidates[0].content.parts[0].function_calls
-                    print(f"Tool calls detected: {tool_calls}", flush=True)
+                    print(f"🛠️ Tool calls detected: {tool_calls}")
+
                     if tool_calls:
-                        print(f"Processing {len(tool_calls)} tool calls", flush=True)
                         results = self.handle_tool_call(tool_calls)
-                        # Generate final response after tool calls
+
+                        # Call Gemini again with tool results
                         final_response = self.model.generate_content(
                             f"{full_prompt}\n\nTool results: {results}\n\nIbe:",
                             generation_config=genai.types.GenerationConfig(
@@ -187,16 +206,13 @@ class Me:
                     else:
                         return response.text
                 except AttributeError:
-                    # No function calls found, return the response text
+                    print("ℹ️ No tool calls found in response.")
                     return response.text
-                    
         except Exception as e:
-            import traceback
-            print(f"Error generating response: {e}")
-            print(f"Full traceback: {traceback.format_exc()}")
-            print(f"Message: {message}")
-            print(f"History length: {len(history) if history else 0}")
-            return "I apologize, but I'm having trouble processing your request right now. Please try again."
+            print("❌ Error handling Gemini response.")
+            print(f"Error: {e}")
+            return "⚠️ Failed to process Gemini's response."
+
     
 
 import os
