@@ -146,11 +146,10 @@ class Me:
         # Combine system prompt, conversation history, and current message
         full_prompt = f"{system_prompt}\n\n{conversation_text}User: {message}\nIbe:"
         
-        # Generate response with tools
+        # Generate response without tools to test
         try:
             response = self.model.generate_content(
                 full_prompt,
-                tools=tools,
                 generation_config=genai.types.GenerationConfig(
                     temperature=0.8,
                     top_p=0.9,
@@ -159,41 +158,15 @@ class Me:
                 )
             )
             
-            # Handle tool calls if present
-            print(f"Response finish_reason: {response.candidates[0].finish_reason}", flush=True)
-            if response.candidates[0].finish_reason == "STOP":
-                return response.text
-            elif response.candidates[0].finish_reason == "SAFETY":
-                return "I apologize, but I cannot respond to that request."
-            else:
-                # Handle tool calls
-                try:
-                    tool_calls = response.candidates[0].content.parts[0].function_calls
-                    print(f"Tool calls detected: {tool_calls}", flush=True)
-                    if tool_calls:
-                        print(f"Processing {len(tool_calls)} tool calls", flush=True)
-                        results = self.handle_tool_call(tool_calls)
-                        # Generate final response after tool calls
-                        final_response = self.model.generate_content(
-                            f"{full_prompt}\n\nTool results: {results}\n\nIbe:",
-                            generation_config=genai.types.GenerationConfig(
-                                temperature=0.8,
-                                top_p=0.9,
-                                top_k=50,
-                                max_output_tokens=2048,
-                            )
-                        )
-                        return final_response.text
-                    else:
-                        return response.text
-                except AttributeError:
-                    # No function calls found, return the response text
-                    return response.text
+            # Simple response handling without tools
+            return response.text
                     
         except Exception as e:
             import traceback
             print(f"Error generating response: {e}")
             print(f"Full traceback: {traceback.format_exc()}")
+            print(f"Message: {message}")
+            print(f"History length: {len(history) if history else 0}")
             return "I apologize, but I'm having trouble processing your request right now. Please try again."
     
 
