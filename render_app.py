@@ -134,8 +134,11 @@ class Me:
         # Create conversation history for context
         conversation_text = ""
         if history:
-            for i, (user_msg, bot_msg) in enumerate(history):
-                conversation_text += f"User: {user_msg}\nIbe: {bot_msg}\n\n"
+            for msg in history:
+                if msg.role == "user":
+                    conversation_text += f"User: {msg.content}\n"
+                elif msg.role == "assistant":
+                    conversation_text += f"Ibe: {msg.content}\n\n"
         
         # Combine system prompt, conversation history, and current message
         full_prompt = f"{system_prompt}\n\n{conversation_text}User: {message}\nIbe:"
