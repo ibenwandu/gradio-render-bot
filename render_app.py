@@ -228,7 +228,7 @@ class Me:
         return system_prompt
 
     def chat(self, message, history):
-        """Chat method that properly handles Gemini conversation flow with Gradio"""
+        """Simple chat method that returns responses for Gradio"""
         try:
             print(f"Received message: {message}")
             print(f"History length: {len(history) if history else 0}")
@@ -271,34 +271,6 @@ class Me:
             )
             
             print(f"Gemini response received")
-            
-            # Handle function calls if present
-            if hasattr(response, 'candidates') and response.candidates:
-                for part in response.candidates[0].content.parts:
-                    if hasattr(part, 'function_call') and part.function_call:
-                        print(f"Function call detected: {part.function_call.name}")
-                        # Handle the function call
-                        function_response = self.handle_tool_call(part.function_call)
-                        
-                        # Send function response and get final response
-                        final_response = chat.send_message(
-                            function_response,
-                            generation_config=genai.types.GenerationConfig(
-                                temperature=0.7,
-                                top_p=0.8,
-                                top_k=40,
-                                max_output_tokens=2048,
-                            )
-                        )
-                        
-                        # Extract text from final response
-                        if hasattr(final_response, 'text'):
-                            response_text = final_response.text
-                        else:
-                            response_text = str(final_response)
-                        
-                        print(f"Final response: {response_text[:100]}...")
-                        return response_text
             
             # Get the text response
             if hasattr(response, 'text'):
@@ -362,8 +334,7 @@ if __name__ == "__main__":
             chatbot_interface = gr.ChatInterface(
                 fn=me.chat,
                 title="Chat with Ibe Nwandu",
-                description="Ask me about my background, experience, and skills",
-                type="messages"
+                description="Ask me about my background, experience, and skills"
             )
 
         # Footer
