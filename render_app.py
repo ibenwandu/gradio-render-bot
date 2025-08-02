@@ -71,8 +71,10 @@ class Me:
         api_key = os.getenv("GOOGLE_API_KEY")
         if not api_key:
             raise ValueError("GOOGLE_API_KEY environment variable is required")
+        print(f"API key found, length: {len(api_key)}")
         genai.configure(api_key=api_key)
         self.model = genai.GenerativeModel('gemini-1.5-flash')
+        print(f"Model initialized: {self.model}")
         self.name = "Ibe Nwandu"
 
         # Download linkedin.pdf using gdown
@@ -128,8 +130,12 @@ class Me:
         return system_prompt
 
     def chat(self, message, history):
+        print(f"Chat method called with message: {message}")
+        print(f"History length: {len(history) if history else 0}")
+        
         # Build conversation context for Google Generative AI
         system_prompt = self.system_prompt()
+        print(f"System prompt length: {len(system_prompt)}")
         
         # Create conversation history for context
         conversation_text = ""
@@ -142,13 +148,13 @@ class Me:
         
         # Combine system prompt, conversation history, and current message
         full_prompt = f"{system_prompt}\n\n{conversation_text}User: {message}\nIbe:"
+        print(f"Full prompt length: {len(full_prompt)}")
         
-        # Generate response with tools
+        # Generate response without tools first to test
         try:
             print(f"Making API call with prompt length: {len(full_prompt)}")
             response = self.model.generate_content(
                 full_prompt,
-                tools=tools,
                 generation_config=genai.types.GenerationConfig(
                     temperature=0.8,
                     top_p=0.9,
@@ -156,37 +162,8 @@ class Me:
                     max_output_tokens=2048,
                 )
             )
-            print(f"Response received, finish_reason: {response.candidates[0].finish_reason}")
-            
-            # Handle tool calls if present
-            if response.candidates[0].finish_reason == "STOP":
-                return response.text
-            elif response.candidates[0].finish_reason == "SAFETY":
-                return "I apologize, but I cannot respond to that request."
-            else:
-                # Handle tool calls
-                try:
-                    tool_calls = response.candidates[0].content.parts[0].function_calls
-                    if tool_calls:
-                        print(f"Tool calls found: {len(tool_calls)}")
-                        results = self.handle_tool_call(tool_calls)
-                        # Generate final response after tool calls
-                        final_response = self.model.generate_content(
-                            f"{full_prompt}\n\nTool results: {results}\n\nIbe:",
-                            generation_config=genai.types.GenerationConfig(
-                                temperature=0.8,
-                                top_p=0.9,
-                                top_k=50,
-                                max_output_tokens=2048,
-                            )
-                        )
-                        return final_response.text
-                    else:
-                        return response.text
-                except AttributeError as ae:
-                    print(f"AttributeError in tool handling: {ae}")
-                    # No function calls found, return the response text
-                    return response.text
+            print(f"Response received successfully")
+            return response.text
                     
         except Exception as e:
             import traceback
