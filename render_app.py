@@ -330,7 +330,7 @@ if __name__ == "__main__":
                 show_password_btn = gr.Button("👁️ Show", variant="secondary")
 
         # Container for chatbot that starts hidden
-        with gr.Column(visible=False) as chatbot_section:
+        with gr.Column(visible=True) as chatbot_section:
             chatbot_interface = gr.ChatInterface(
                 fn=me.chat,
                 title="Chat with Ibe Nwandu",
