@@ -117,6 +117,10 @@ class Me:
         self.model = genai.GenerativeModel('gemini-1.5-flash', tools=tools)
         self.name = "Ibe Nwandu"
 
+        # Initialize chat session to maintain context
+        self.chat_session = None
+        self.system_prompt_sent = False
+
         # Try to load files - first check if they exist locally, then try to download
         linkedin_pdf_path = "linkedin.pdf"
         
@@ -213,7 +217,7 @@ class Me:
             )
         )
 
-    def system_prompt(self):
+    def get_system_prompt(self):
         system_prompt = (
             f"You are acting as {self.name}. You are answering questions on {self.name}'s website, "
             f"particularly questions related to {self.name}'s career, background, skills and experience. "
@@ -228,40 +232,34 @@ class Me:
         return system_prompt
 
     def chat(self, message, history):
-        """Simple chat method that returns responses for Gradio"""
+        """Chat method compatible with gr.ChatInterface"""
         try:
             print(f"Received message: {message}")
             print(f"History length: {len(history) if history else 0}")
             
-            # Create a new chat session
-            chat = self.model.start_chat()
+            # Initialize chat session if needed
+            if self.chat_session is None:
+                self.chat_session = self.model.start_chat()
+                self.system_prompt_sent = False
             
-            # Build the conversation context
-            conversation_parts = []
+            # Send system prompt only once at the beginning
+            if not self.system_prompt_sent:
+                system_response = self.chat_session.send_message(
+                    self.get_system_prompt(),
+                    generation_config=genai.types.GenerationConfig(
+                        temperature=0.7,
+                        top_p=0.8,
+                        top_k=40,
+                        max_output_tokens=2048,
+                    )
+                )
+                self.system_prompt_sent = True
+                print("System prompt sent successfully")
             
-            # Add system prompt for the first message
-            if not history:
-                conversation_parts.append(self.system_prompt())
-            
-            # Add conversation history
-            if history:
-                for msg in history:
-                    if msg["role"] == "user":
-                        conversation_parts.append(f"User: {msg['content']}")
-                    elif msg["role"] == "assistant":
-                        conversation_parts.append(f"Assistant: {msg['content']}")
-            
-            # Add current user message
-            conversation_parts.append(f"User: {message}")
-            
-            # Combine all parts
-            full_message = "\n\n".join(conversation_parts)
-            
-            print(f"Sending to Gemini: {full_message[:200]}...")
-            
-            # Send message to Gemini
-            response = chat.send_message(
-                full_message,
+            # Send user message
+            print(f"Sending user message to Gemini: {message}")
+            response = self.chat_session.send_message(
+                message,
                 generation_config=genai.types.GenerationConfig(
                     temperature=0.7,
                     top_p=0.8,
@@ -272,13 +270,40 @@ class Me:
             
             print(f"Gemini response received")
             
-            # Get the text response
+            # Handle function calls if present
+            if response.candidates[0].content.parts:
+                for part in response.candidates[0].content.parts:
+                    if hasattr(part, 'function_call') and part.function_call:
+                        print(f"Processing function call: {part.function_call.name}")
+                        tool_response = self.handle_tool_call(part.function_call)
+                        
+                        # Send the tool response back to continue the conversation
+                        follow_up_response = self.chat_session.send_message(
+                            tool_response,
+                            generation_config=genai.types.GenerationConfig(
+                                temperature=0.7,
+                                top_p=0.8,
+                                top_k=40,
+                                max_output_tokens=2048,
+                            )
+                        )
+                        
+                        # Use the follow-up response as the final response
+                        response = follow_up_response
+            
+            # Extract text response
+            response_text = ""
             if hasattr(response, 'text'):
                 response_text = response.text
-            else:
-                response_text = str(response)
+            elif response.candidates and response.candidates[0].content.parts:
+                for part in response.candidates[0].content.parts:
+                    if hasattr(part, 'text'):
+                        response_text += part.text
             
-            print(f"Response: {response_text[:100]}...")
+            if not response_text:
+                response_text = "I apologize, but I'm having trouble generating a response. Could you please try rephrasing your question?"
+            
+            print(f"Final response: {response_text[:100]}...")
             return response_text
             
         except Exception as e:
@@ -292,23 +317,29 @@ if __name__ == "__main__":
     me = Me()
     port = int(os.environ.get("PORT", 10000))  # Use port 10000 as default for Render
     
-    # Custom theme
-    dark_theme = gr.themes.Base().set(
-        body_background_fill="#2778c4",
-        body_text_color="#000000"
+    # Custom theme with better visibility
+    custom_theme = gr.themes.Base(
+        primary_hue="blue",
+        secondary_hue="gray",
+        neutral_hue="gray",
+    ).set(
+        body_background_fill="#f8f9fa",
+        body_text_color="#212529",
+        block_background_fill="#ffffff",
+        block_border_color="#dee2e6",
+        input_background_fill="#ffffff",
+        button_primary_background_fill="#0d6efd",
+        button_primary_text_color="#ffffff"
     )
 
-    with gr.Blocks(theme=dark_theme) as demo:
-        gr.HTML("""
-        <style>
-            footer { display: none !important; }
-            .svelte-1ipelgc { display: none !important; }
-            .prose a[href*="gradio.app"] { display: none !important; }
-            .gradio-container .prose { display: none !important; }
-            .gradio-container .footer { display: none !important; }
-            .gradio-container .center { margin-bottom: 0 !important; }
-        </style>
-        """)
+    with gr.Blocks(theme=custom_theme, css="""
+        .gradio-container { max-width: 1200px !important; }
+        .message { background: #f8f9fa !important; padding: 10px !important; margin: 5px 0 !important; border-radius: 8px !important; }
+        .message.user { background: #e3f2fd !important; }
+        .message.bot { background: #f1f8e9 !important; }
+        footer { display: none !important; }
+        .gradio-container .prose { display: none !important; }
+    """) as demo:
 
         # Password section - always visible initially
         with gr.Column(visible=True) as password_section:
@@ -330,16 +361,25 @@ if __name__ == "__main__":
                 show_password_btn = gr.Button("👁️ Show", variant="secondary")
 
         # Container for chatbot that starts hidden
-        with gr.Column(visible=True) as chatbot_section:
+        with gr.Column(visible=False) as chatbot_section:
             chatbot_interface = gr.ChatInterface(
                 fn=me.chat,
                 title="Chat with Ibe Nwandu",
-                description="Ask me about my background, experience, and skills"
+                description="Ask me about my background, experience, and skills",
+                examples=[
+                    "Tell me about your background",
+                    "What are your technical skills?",
+                    "What kind of projects have you worked on?",
+                    "How can I contact you?"
+                ],
+                retry_btn=None,
+                undo_btn=None,
+                clear_btn="Clear Chat"
             )
 
         # Footer
         gr.HTML("""
-        <div style='text-align:center; color:red; padding:1em; font-size:1.2em; font-style:italic;'>
+        <div style='text-align:center; color:#6c757d; padding:1em; font-size:1.1em; font-style:italic;'>
             Ibe Nwandu
         </div>
         """)
