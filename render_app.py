@@ -372,9 +372,7 @@ if __name__ == "__main__":
                     "What kind of projects have you worked on?",
                     "How can I contact you?"
                 ],
-                retry_btn=None,
-                undo_btn=None,
-                clear_btn="Clear Chat"
+                type="messages"
             )
 
         # Footer
