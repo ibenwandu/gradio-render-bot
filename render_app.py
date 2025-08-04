@@ -1,12 +1,21 @@
 import os
 import json
 import gdown
-from openai import OpenAI
+import google.generativeai as genai
 from pypdf import PdfReader
 import gradio as gr
 from dotenv import load_dotenv
 
-load_dotenv(override=True)
+print("Loading .env file...")
+env_loaded = load_dotenv(override=True)
+print(f"Environment file loaded: {env_loaded}")
+print(f"Current working directory: {os.getcwd()}")
+print(f".env file exists: {os.path.exists('.env')}")
+
+# List all environment variables that start with our expected prefixes
+import os
+env_vars = {k: v for k, v in os.environ.items() if k.startswith(('GOOGLE_', 'LINKEDIN_', 'SUMMARY_', 'PUSHOVER_', 'CHATBOT_'))}
+print(f"Relevant environment variables found: {list(env_vars.keys())}")
 
 
 def push(text):
@@ -59,23 +68,87 @@ record_unknown_question_json = {
     },
 }
 
+# Define tools for Gemini using function declaration format
 tools = [
-    {"type": "function", "function": record_user_details_json},
-    {"type": "function", "function": record_unknown_question_json},
+    genai.protos.Tool(
+        function_declarations=[
+            genai.protos.FunctionDeclaration(
+                name="record_user_details",
+                description="Use this tool to record that a user is interested in being in touch and provided an email address",
+                parameters=genai.protos.Schema(
+                    type=genai.protos.Type.OBJECT,
+                    properties={
+                        "email": genai.protos.Schema(type=genai.protos.Type.STRING, description="The email address of this user"),
+                        "name": genai.protos.Schema(type=genai.protos.Type.STRING, description="The user's name, if they provided it"),
+                        "notes": genai.protos.Schema(type=genai.protos.Type.STRING, description="Any additional information about the conversation that's worth recording to give context"),
+                    },
+                    required=["email"]
+                )
+            ),
+            genai.protos.FunctionDeclaration(
+                name="record_unknown_question",
+                description="Always use this tool to record any question that couldn't be answered as you didn't know the answer",
+                parameters=genai.protos.Schema(
+                    type=genai.protos.Type.OBJECT,
+                    properties={
+                        "question": genai.protos.Schema(type=genai.protos.Type.STRING, description="The question that couldn't be answered"),
+                    },
+                    required=["question"]
+                )
+            )
+        ]
+    )
 ]
 
 
 class Me:
     def __init__(self):
-        self.openai = OpenAI()
+        # Debug environment variables
+        print("Checking environment variables...")
+        print(f"GOOGLE_API_KEY exists: {bool(os.getenv('GOOGLE_API_KEY'))}")
+        print(f"LINKEDIN_PDF_URL: {os.getenv('LINKEDIN_PDF_URL')}")
+        print(f"SUMMARY_TXT_URL: {os.getenv('SUMMARY_TXT_URL')}")
+        
+        # Configure Google Gemini API
+        api_key = os.getenv("GOOGLE_API_KEY")
+        if not api_key:
+            raise ValueError("GOOGLE_API_KEY environment variable is required")
+        genai.configure(api_key=api_key)
+        self.model = genai.GenerativeModel('gemini-1.5-flash', tools=tools)
         self.name = "Ibe Nwandu"
 
-        # Download linkedin.pdf using gdown
-        linkedin_pdf_url = os.getenv("LINKEDIN_PDF_URL")
-        linkedin_pdf_path = "linkedin.pdf"
-        print(f"Downloading LinkedIn PDF from {linkedin_pdf_url}")
-        gdown.download(linkedin_pdf_url, linkedin_pdf_path, quiet=False)
+        # Initialize chat session to maintain context
+        self.chat_session = None
+        self.system_prompt_sent = False
 
+        # Try to load files - first check if they exist locally, then try to download
+        linkedin_pdf_path = "linkedin.pdf"
+        
+        if os.path.exists(linkedin_pdf_path):
+            print(f"Using existing LinkedIn PDF: {linkedin_pdf_path}")
+        else:
+            # Download linkedin.pdf using gdown
+            linkedin_pdf_url = os.getenv("LINKEDIN_PDF_URL")
+            if not linkedin_pdf_url:
+                raise ValueError("LINKEDIN_PDF_URL environment variable is required and linkedin.pdf not found locally")
+            
+            # Handle both full URLs and file IDs
+            if linkedin_pdf_url.startswith("http"):
+                download_url = linkedin_pdf_url
+            else:
+                # Assume it's a file ID and construct the URL
+                download_url = f"https://drive.google.com/uc?id={linkedin_pdf_url}"
+            
+            print(f"Downloading LinkedIn PDF from {download_url}")
+            try:
+                gdown.download(download_url, linkedin_pdf_path, quiet=False)
+            except Exception as e:
+                print(f"Failed to download LinkedIn PDF: {e}")
+                print("Please ensure the Google Drive file is shared with 'Anyone with the link' permissions")
+                print("Or place the linkedin.pdf file directly in the project directory")
+                raise
+
+        # Read LinkedIn PDF
         with open(linkedin_pdf_path, "rb") as f:
             header = f.read(5)
         print(f"PDF header bytes: {header}")
@@ -87,27 +160,64 @@ class Me:
             if text:
                 self.linkedin += text
 
-        # Download summary.txt using gdown
-        summary_txt_url = os.getenv("SUMMARY_TXT_URL")
+        # Try to load summary file
         summary_txt_path = "summary.txt"
-        print(f"Downloading summary text from {summary_txt_url}")
-        gdown.download(summary_txt_url, summary_txt_path, quiet=False)
+        
+        if os.path.exists(summary_txt_path):
+            print(f"Using existing summary file: {summary_txt_path}")
+        else:
+            # Download summary.txt using gdown
+            summary_txt_url = os.getenv("SUMMARY_TXT_URL")
+            if not summary_txt_url:
+                raise ValueError("SUMMARY_TXT_URL environment variable is required and summary.txt not found locally")
+            
+            # Handle both full URLs and file IDs
+            if summary_txt_url.startswith("http"):
+                download_url = summary_txt_url
+            else:
+                # Assume it's a file ID and construct the URL
+                download_url = f"https://drive.google.com/uc?id={summary_txt_url}"
+                
+            print(f"Downloading summary text from {download_url}")
+            try:
+                gdown.download(download_url, summary_txt_path, quiet=False)
+            except Exception as e:
+                print(f"Failed to download summary file: {e}")
+                print("Please ensure the Google Drive file is shared with 'Anyone with the link' permissions")
+                print("Or place the summary.txt file directly in the project directory")
+                raise
 
         with open(summary_txt_path, "r", encoding="utf-8") as f:
             self.summary = f.read()
 
-    def handle_tool_call(self, tool_calls):
-        results = []
-        for tool_call in tool_calls:
-            tool_name = tool_call.function.name
-            arguments = json.loads(tool_call.function.arguments)
-            print(f"Tool called: {tool_name}", flush=True)
-            tool = globals().get(tool_name)
-            result = tool(**arguments) if tool else {}
-            results.append({"role": "tool", "content": json.dumps(result), "tool_call_id": tool_call.id})
-        return results
+    def handle_tool_call(self, function_call):
+        """Handle function calls from Gemini"""
+        function_name = function_call.name
+        function_args = function_call.args
+        
+        print(f"Tool called: {function_name}", flush=True)
+        
+        if function_name == "record_user_details":
+            result = record_user_details(
+                email=function_args.get("email", ""),
+                name=function_args.get("name", "Name not provided"),
+                notes=function_args.get("notes", "not provided")
+            )
+        elif function_name == "record_unknown_question":
+            result = record_unknown_question(
+                question=function_args.get("question", "")
+            )
+        else:
+            result = {"error": f"Unknown function: {function_name}"}
+        
+        return genai.protos.Part(
+            function_response=genai.protos.FunctionResponse(
+                name=function_name,
+                response={"result": json.dumps(result)}
+            )
+        )
 
-    def system_prompt(self):
+    def get_system_prompt(self):
         system_prompt = (
             f"You are acting as {self.name}. You are answering questions on {self.name}'s website, "
             f"particularly questions related to {self.name}'s career, background, skills and experience. "
@@ -122,54 +232,199 @@ class Me:
         return system_prompt
 
     def chat(self, message, history):
-        messages = [{"role": "system", "content": self.system_prompt()}] + history + [{"role": "user", "content": message}]
-        done = False
-        while not done:
-            response = self.openai.chat.completions.create(model="gpt-4o-mini", messages=messages, tools=tools)
-            if response.choices[0].finish_reason == "tool_calls":
-                message = response.choices[0].message
-                tool_calls = message.tool_calls
-                results = self.handle_tool_call(tool_calls)
-                messages.append(message)
-                messages.extend(results)
-            else:
-                done = True
-        return response.choices[0].message.content
+        """Chat method compatible with gr.ChatInterface"""
+        try:
+            print(f"Received message: {message}")
+            print(f"History length: {len(history) if history else 0}")
+            
+            # Initialize chat session if needed
+            if self.chat_session is None:
+                self.chat_session = self.model.start_chat()
+                self.system_prompt_sent = False
+            
+            # Send system prompt only once at the beginning
+            if not self.system_prompt_sent:
+                system_response = self.chat_session.send_message(
+                    self.get_system_prompt(),
+                    generation_config=genai.types.GenerationConfig(
+                        temperature=0.7,
+                        top_p=0.8,
+                        top_k=40,
+                        max_output_tokens=2048,
+                    )
+                )
+                self.system_prompt_sent = True
+                print("System prompt sent successfully")
+            
+            # Send user message
+            print(f"Sending user message to Gemini: {message}")
+            response = self.chat_session.send_message(
+                message,
+                generation_config=genai.types.GenerationConfig(
+                    temperature=0.7,
+                    top_p=0.8,
+                    top_k=40,
+                    max_output_tokens=2048,
+                )
+            )
+            
+            print(f"Gemini response received")
+            
+            # Handle function calls if present
+            if response.candidates[0].content.parts:
+                for part in response.candidates[0].content.parts:
+                    if hasattr(part, 'function_call') and part.function_call:
+                        print(f"Processing function call: {part.function_call.name}")
+                        tool_response = self.handle_tool_call(part.function_call)
+                        
+                        # Send the tool response back to continue the conversation
+                        follow_up_response = self.chat_session.send_message(
+                            tool_response,
+                            generation_config=genai.types.GenerationConfig(
+                                temperature=0.7,
+                                top_p=0.8,
+                                top_k=40,
+                                max_output_tokens=2048,
+                            )
+                        )
+                        
+                        # Use the follow-up response as the final response
+                        response = follow_up_response
+            
+            # Extract text response
+            response_text = ""
+            if hasattr(response, 'text'):
+                response_text = response.text
+            elif response.candidates and response.candidates[0].content.parts:
+                for part in response.candidates[0].content.parts:
+                    if hasattr(part, 'text'):
+                        response_text += part.text
+            
+            if not response_text:
+                response_text = "I apologize, but I'm having trouble generating a response. Could you please try rephrasing your question?"
+            
+            print(f"Final response: {response_text[:100]}...")
+            return response_text
+            
+        except Exception as e:
+            print(f"Error in chat: {e}")
+            import traceback
+            traceback.print_exc()
+            return "I apologize, but I'm having trouble processing your request right now. Please try again."
 
 
 if __name__ == "__main__":
-    import os
-    import gradio as gr
-
     me = Me()
-    port = int(os.environ.get("PORT", 7860))
-
-    dark_theme = gr.themes.Base().set(
-        body_background_fill="#2778c4",
-        body_text_color="#000000"
+    port = int(os.environ.get("PORT", 10000))  # Use port 10000 as default for Render
+    
+    # Custom theme with better visibility
+    custom_theme = gr.themes.Base(
+        primary_hue="blue",
+        secondary_hue="gray",
+        neutral_hue="gray",
+    ).set(
+        body_background_fill="#f8f9fa",
+        body_text_color="#212529",
+        block_background_fill="#ffffff",
+        block_border_color="#dee2e6",
+        input_background_fill="#ffffff",
+        button_primary_background_fill="#0d6efd",
+        button_primary_text_color="#ffffff"
     )
-    gr.HTML("""
-        <script>
-        window.addEventListener('load', function () {
-            // Attempt to remove Gradio footer repeatedly (due to how it renders)
-            const interval = setInterval(() => {
-                const footer = document.querySelector('footer');
-                if (footer) {
-                    footer.remove();
-                    clearInterval(interval);
-                }
-            }, 500);
-        });
-        </script>
-        """)
 
-        
-    chatbot = gr.ChatInterface(me.chat, type="messages", theme=dark_theme)
+    with gr.Blocks(theme=custom_theme, css="""
+        .gradio-container { max-width: 1200px !important; }
+        .message { background: #f8f9fa !important; padding: 10px !important; margin: 5px 0 !important; border-radius: 8px !important; }
+        .message.user { background: #e3f2fd !important; }
+        .message.bot { background: #f1f8e9 !important; }
+        footer { display: none !important; }
+        .gradio-container .prose { display: none !important; }
+    """) as demo:
 
-    gr.HTML("""
-        <div style='text-align:center; color:#aaa; padding:1em; font-size:0.9em'>
+        # Password section - always visible initially
+        with gr.Column(visible=True) as password_section:
+            gr.Markdown("# Welcome")
+            error_message = gr.Textbox(
+                value="", 
+                visible=False, 
+                interactive=False, 
+                show_label=False,
+                container=False
+            )
+            password_box = gr.Textbox(
+                label="🔑 Enter Access Code", 
+                type="password",
+                placeholder="Enter password to access chatbot"
+            )
+            with gr.Row():
+                submit_btn = gr.Button("Submit", variant="primary")
+                show_password_btn = gr.Button("👁️ Show", variant="secondary")
+
+        # Container for chatbot that starts hidden
+        with gr.Column(visible=False) as chatbot_section:
+            chatbot_interface = gr.ChatInterface(
+                fn=me.chat,
+                title="Chat with Ibe Nwandu",
+                description="Ask me about my background, experience, and skills",
+                examples=[
+                    "Tell me about your background",
+                    "What are your technical skills?",
+                    "What kind of projects have you worked on?",
+                    "How can I contact you?"
+                ],
+                type="messages"
+            )
+
+        # Footer
+        gr.HTML("""
+        <div style='text-align:center; color:#6c757d; padding:1em; font-size:1.1em; font-style:italic;'>
             Ibe Nwandu
         </div>
         """)
 
-    chatbot.launch(server_name="0.0.0.0", server_port=port)
+        # Show/hide password toggle
+        password_visible = gr.State(False)
+        
+        def toggle_password_visibility(is_visible):
+            new_visible = not is_visible
+            if new_visible:
+                return gr.update(type="text"), "🙈 Hide", new_visible
+            else:
+                return gr.update(type="password"), "👁️ Show", new_visible
+
+        # Button logic
+        def handle_password_submit(pw):
+            PASSWORD = os.getenv("CHATBOT_PASSCODE")
+            if pw == PASSWORD:
+                return (
+                    gr.update(visible=False),  # Hide password section completely
+                    gr.update(visible=True),   # Show chatbot section
+                    gr.update(value="", visible=False)  # Clear and hide error
+                )
+            else:
+                return (
+                    gr.update(visible=True),   # Keep password section visible
+                    gr.update(visible=False),  # Keep chatbot hidden
+                    gr.update(value="❌ Wrong password. Try again.", visible=True)  # Show error
+                )
+
+        submit_btn.click(
+            fn=handle_password_submit,
+            inputs=password_box,
+            outputs=[password_section, chatbot_section, error_message]
+        )
+        
+        show_password_btn.click(
+            fn=toggle_password_visibility,
+            inputs=password_visible,
+            outputs=[password_box, show_password_btn, password_visible]
+        )
+
+    # Launch app
+    demo.launch(
+        server_name="0.0.0.0",  # Use 0.0.0.0 for Render deployment
+        server_port=port,
+        share=False,
+        show_error=True,
+        show_api=False
+    )
