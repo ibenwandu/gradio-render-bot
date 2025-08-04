@@ -1,10 +1,36 @@
 import os
 import json
-import gdown
-from openai import OpenAI
-from pypdf import PdfReader
-import gradio as gr
-from dotenv import load_dotenv
+print("✓ os and json imported successfully")
+
+try:
+    import gdown
+    print("✓ gdown imported successfully")
+except ImportError as e:
+    print(f"✗ Failed to import gdown: {e}")
+
+try:
+    from openai import OpenAI
+    print("✓ openai imported successfully")
+except ImportError as e:
+    print(f"✗ Failed to import openai: {e}")
+
+try:
+    from pypdf import PdfReader
+    print("✓ pypdf imported successfully")
+except ImportError as e:
+    print(f"✗ Failed to import pypdf: {e}")
+
+try:
+    import gradio as gr
+    print("✓ gradio imported successfully")
+except ImportError as e:
+    print(f"✗ Failed to import gradio: {e}")
+
+try:
+    from dotenv import load_dotenv
+    print("✓ python-dotenv imported successfully")
+except ImportError as e:
+    print(f"✗ Failed to import python-dotenv: {e}")
 
 load_dotenv(override=True)
 
