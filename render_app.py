@@ -208,6 +208,7 @@ if __name__ == "__main__":
         with gr.Column(visible=False) as chatbot_section:
             chatbot_interface = gr.ChatInterface(
                 fn=me.chat,
+                type="messages",
                 title="Chat with Ibe Nwandu",
                 description="Ask me about my background, experience, and skills"
             )
