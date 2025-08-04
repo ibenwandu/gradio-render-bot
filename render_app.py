@@ -175,15 +175,15 @@ if __name__ == "__main__":
 
     with gr.Blocks(theme=dark_theme) as demo:
         gr.HTML("""
-        <style>
-            footer { display: none !important; }
-            .svelte-1ipelgc { display: none !important; }
-            .prose a[href*="gradio.app"] { display: none !important; }
-            .gradio-container .prose { display: none !important; }
-            .gradio-container .footer { display: none !important; }
-            .gradio-container .center { margin-bottom: 0 !important; }
-        </style>
-        """)
+            <style>
+                footer, 
+                .prose a[href*="gradio.app"], 
+                .gradio-container .footer {
+                    display: none !important;
+                }
+            </style>
+            """)
+
 
         # Password section - always visible initially
         with gr.Column(visible=True) as password_section:
