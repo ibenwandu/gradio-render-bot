@@ -164,38 +164,104 @@ class Me:
 
 
 if __name__ == "__main__":
-    import os
-    import gradio as gr
-
     me = Me()
-    port = int(os.environ.get("PORT", 7860))
-
+    port = int(os.environ.get("PORT", 10000))  # Use port 10000 as default for Render
+    
+    # Custom theme
     dark_theme = gr.themes.Base().set(
         body_background_fill="#2778c4",
         body_text_color="#000000"
     )
-    gr.HTML("""
-        <script>
-        window.addEventListener('load', function () {
-            // Attempt to remove Gradio footer repeatedly (due to how it renders)
-            const interval = setInterval(() => {
-                const footer = document.querySelector('footer');
-                if (footer) {
-                    footer.remove();
-                    clearInterval(interval);
-                }
-            }, 500);
-        });
-        </script>
+
+    with gr.Blocks(theme=dark_theme) as demo:
+        gr.HTML("""
+        <style>
+            footer { display: none !important; }
+            .svelte-1ipelgc { display: none !important; }
+            .prose a[href*="gradio.app"] { display: none !important; }
+            .gradio-container .prose { display: none !important; }
+            .gradio-container .footer { display: none !important; }
+            .gradio-container .center { margin-bottom: 0 !important; }
+        </style>
         """)
 
-        
-    chatbot = gr.ChatInterface(me.chat, type="messages", theme=dark_theme)
+        # Password section - always visible initially
+        with gr.Column(visible=True) as password_section:
+            gr.Markdown("# Welcome")
+            error_message = gr.Textbox(
+                value="", 
+                visible=False, 
+                interactive=False, 
+                show_label=False,
+                container=False
+            )
+            password_box = gr.Textbox(
+                label="🔑 Enter Access Code", 
+                type="password",
+                placeholder="Enter password to access chatbot"
+            )
+            with gr.Row():
+                submit_btn = gr.Button("Submit", variant="primary")
+                show_password_btn = gr.Button("👁️ Show", variant="secondary")
 
-    gr.HTML("""
-        <div style='text-align:center; color:#aaa; padding:1em; font-size:0.9em'>
+        # Container for chatbot that starts hidden
+        with gr.Column(visible=False) as chatbot_section:
+            chatbot_interface = gr.ChatInterface(
+                fn=me.chat,
+                title="Chat with Ibe Nwandu",
+                description="Ask me about my background, experience, and skills"
+            )
+
+        # Footer
+        gr.HTML("""
+        <div style='text-align:center; color:red; padding:1em; font-size:1.2em; font-style:italic;'>
             Ibe Nwandu
         </div>
         """)
 
-    chatbot.launch(server_name="0.0.0.0", server_port=port)
+        # Show/hide password toggle
+        password_visible = gr.State(False)
+        
+        def toggle_password_visibility(is_visible):
+            new_visible = not is_visible
+            if new_visible:
+                return gr.update(type="text"), "🙈 Hide", new_visible
+            else:
+                return gr.update(type="password"), "👁️ Show", new_visible
+
+        # Button logic
+        def handle_password_submit(pw):
+            PASSWORD = os.getenv("CHATBOT_PASSCODE")
+            if pw == PASSWORD:
+                return (
+                    gr.update(visible=False),  # Hide password section completely
+                    gr.update(visible=True),   # Show chatbot section
+                    gr.update(value="", visible=False)  # Clear and hide error
+                )
+            else:
+                return (
+                    gr.update(visible=True),   # Keep password section visible
+                    gr.update(visible=False),  # Keep chatbot hidden
+                    gr.update(value="❌ Wrong password. Try again.", visible=True)  # Show error
+                )
+
+        submit_btn.click(
+            fn=handle_password_submit,
+            inputs=password_box,
+            outputs=[password_section, chatbot_section, error_message]
+        )
+        
+        show_password_btn.click(
+            fn=toggle_password_visibility,
+            inputs=password_visible,
+            outputs=[password_box, show_password_btn, password_visible]
+        )
+
+    # Launch app
+    demo.launch(
+        server_name="0.0.0.0",  # Use 0.0.0.0 for Render deployment
+        server_port=port,
+        share=False,
+        show_error=True,
+        show_api=False
+    )
