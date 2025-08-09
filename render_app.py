@@ -1,5 +1,7 @@
 import os
 import json
+import datetime
+import pytz
 print("✓ os and json imported successfully")
 
 try:
@@ -134,6 +136,12 @@ class Me:
         return results
 
     def system_prompt(self):
+        # Get current date and time in EST
+        est = pytz.timezone('US/Eastern')
+        current_datetime = datetime.datetime.now(est)
+        current_date = current_datetime.strftime("%A, %B %d, %Y")
+        current_time = current_datetime.strftime("%I:%M %p")
+        
         system_prompt = (
             f"You are acting as {self.name}. You are answering questions on {self.name}'s website, "
             f"particularly questions related to {self.name}'s career, background, skills and experience. "
@@ -144,6 +152,14 @@ class Me:
             f"If the user is engaging in discussion, try to steer them towards getting in touch via email; ask for their email and record it using your record_user_details tool. "
         )
         system_prompt += f"\n\n## Summary:\n{self.summary}\n\n## LinkedIn Profile:\n{self.linkedin}\n\n"
+        
+        # Add current date/time context in EST
+        system_prompt += f"## Current Context:\n"
+        system_prompt += f"Today's date: {current_date}\n"
+        system_prompt += f"Current time: {current_time} EST\n"
+        system_prompt += f"You should be aware of the current date and time (Eastern Standard Time) when answering questions about availability, scheduling, recent activities, or any time-sensitive matters. "
+        system_prompt += f"If someone asks about scheduling or availability, consider the current time and typical business hours.\n\n"
+        
         system_prompt += f"With this context, please chat with the user, always staying in character as {self.name}."
         return system_prompt
 
